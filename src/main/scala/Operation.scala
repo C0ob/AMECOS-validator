@@ -12,16 +12,16 @@ abstract class Operation(val inputTypes: Array[DataType],
   val input: Array[dataType] = Array()
   val output: Option[dataType] = None
 
-  val uuid: UUID = UUID.randomUUID()
+  val uuid: UUID = UUID.randomUUID() // To keep set semantics working
 
   var prev: Set[Operation] = Set()// Derived from partial order
   var next: Set[Operation] = Set()
 
-  def context(slave: Boolean = false): Set[Operation] =
+  def context(slave: Boolean = false): Set[Operation] = // All operations that happened before this one
     if prev.isEmpty then if slave then Set(this) else Set()
     else prev ++ prev.flatMap(o => o.context(true))
 
-  def future(slave: Boolean = false): Set[Operation] =
+  def future(slave: Boolean = false): Set[Operation] = // All operations that happen after this one
     if next.isEmpty then if slave then Set(this) else Set()
     else next ++ next.flatMap(o => o.future(true))
 
