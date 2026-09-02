@@ -1,3 +1,5 @@
+import java.util.UUID
+
 type dataType = Integer | Boolean | String
 
 enum DataType:
@@ -10,16 +12,18 @@ abstract class Operation(val inputTypes: Array[DataType],
   val input: Array[dataType] = Array()
   val output: Option[dataType] = None
 
+  val uuid: UUID = UUID.randomUUID()
+
   var prev: Set[Operation] = Set()// Derived from partial order
   var next: Set[Operation] = Set()
 
-  def context(): Set[Operation] =
-    if prev.isEmpty then Set(this)
-    else prev ++ prev.flatMap(o => o.context())
+  def context(slave: Boolean = false): Set[Operation] =
+    if prev.isEmpty then if slave then Set(this) else Set()
+    else prev ++ prev.flatMap(o => o.context(true))
 
-  def future(): Set[Operation] =
-    if next.isEmpty then Set(this)
-    else next ++ next.flatMap(o => o.future())
+  def future(slave: Boolean = false): Set[Operation] =
+    if next.isEmpty then if slave then Set(this) else Set()
+    else next ++ next.flatMap(o => o.future(true))
 
   def v(): Boolean // Validity
 
@@ -38,7 +42,10 @@ abstract class Operation(val inputTypes: Array[DataType],
     println("S is " + resS)
     val resL = l()
     println("L is " + resL)
-    resV && resS && resL
+    val res = resV && resS && resL
+    if res then println(Console.GREEN + "Legal" + Console.RESET)
+    else println(Console.RED + "Illegal" + Console.RESET)
+    res
   }
 }
 
@@ -49,7 +56,7 @@ class Read(data: Integer) extends Operation(Array(), Some(DataType.Int), "Read")
   def s(): Boolean = context().exists(o => // The output got written before and did not get overwritten
     o.name == "Write" &&
     o.input(0) == output.get &&
-      !context().intersect(o.future()).excl(o).exists(_.name == "Write" && o.input(0) == output.get))
+      !context().intersect(o.future()).exists(_.name == "Write" && o.input(0) == output.get))
 
   def l(): Boolean = true // Assume operation completed at some point
 
