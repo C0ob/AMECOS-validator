@@ -6,15 +6,18 @@ enum DataType:
   case Int, Boolean, String
 
 // Represents an operation. Objects of this class are op-exes.
-abstract class Operation(val inputTypes: Array[DataType],
+abstract class Operation(val obj: Crdt, val inputTypes: Array[DataType],
                          val outputType: Option[DataType], val name: String = "") {
 
   val input: Array[dataType] = Array()
   val output: Option[dataType] = None
 
+  var interval: (Int, Int) = (0, 0)
+  assert(interval._1 <= interval._2)
+
   val uuid: UUID = UUID.randomUUID() // To keep set semantics working
 
-  var prev: Set[Operation] = Set()// Derived from partial order
+  var prev: Set[Operation] = Set() // Derived from partial order
   var next: Set[Operation] = Set()
 
   def context(slave: Boolean = false): Set[Operation] = // All operations that happened before this one
@@ -31,11 +34,11 @@ abstract class Operation(val inputTypes: Array[DataType],
 
   def l(): Boolean // Liveness
 
-  override def toString: String = name  + input.mkString("(", ", ", ")") + "/" + output.mkString
+  override def toString: String = name + input.mkString("(", ", ", ")") + "/" + output.mkString
 
   def legal(): Boolean = {
     println("!--- Verifying " + this)
-    next.foreach(o => println(""+ this + "->" + o))
+    next.foreach(o => println("" + this + "->" + o))
     val resV = v()
     println("V is " + resV)
     val resS = s()

@@ -1,0 +1,17 @@
+new Register R
+
+R.Write(1)
+R.Read()/1
+R.Read()/1
+R.Read()/1
+R.Read()/1
+R.Write(2)
+R.Read()/2
+
+
+0->1
+1->2
+2->3
+3->4
+4->5
+5->6
