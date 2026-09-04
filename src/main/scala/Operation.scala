@@ -1,6 +1,6 @@
 import java.util.UUID
 
-type dataType = Integer | Boolean | String
+type dataType = Int | Boolean | String
 
 enum DataType:
   case Int, Boolean, String
@@ -48,20 +48,3 @@ abstract class Operation(val inputTypes: Array[DataType],
     res
   }
 }
-
-// Example: shared register
-class Read(data: Integer) extends Operation(Array(), Some(DataType.Int), "Read"):
-  override val output = Some(data)
-  def v(): Boolean = context().exists(_.name == "Write") // At least one write happened before
-  def s(): Boolean = context().exists(o => // The output got written before and did not get overwritten
-    o.name == "Write" &&
-    o.input(0) == output.get &&
-      !context().intersect(o.future()).exists(_.name == "Write" && o.input(0) == output.get))
-
-  def l(): Boolean = true // Assume operation completed at some point
-
-class Write(data: Integer) extends Operation(Array(DataType.Int), None, "Write"):
-  override val input = Array(data)
-  def v(): Boolean = true // Can always write
-  def s(): Boolean = true // Is always safe to write
-  def l(): Boolean = true // Assume operation completed at some point
