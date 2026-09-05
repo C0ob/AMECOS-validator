@@ -35,4 +35,12 @@ object Main:
     val history = History(ast.opexes.toSet, ast.ordering)
 
     val legality = history.legal()
-    if legality then println(Console.GREEN + "History is legal") else println(Console.RED + "History is illegal")
+    if legality then println(Console.GREEN + "History is legal" + Console.RESET) else println(Console.RED + "History is illegal" + Console.RESET)
+
+    if ast.consistensies.nonEmpty then println("!--- Checking consistencies:")
+    ast.consistensies.foreach(c =>
+      if c.check(history) then
+        println(Console.GREEN + c.name + " is satisfied" + Console.RESET)
+        else
+        println(Console.RED + c.name + " is not satisfied" + Console.RESET)
+    )

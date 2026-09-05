@@ -1,11 +1,11 @@
 class Register(name: String) extends Crdt(name):
-  override def new_op(name: String, args: List[Int], ret: Option[Int]): Operation =
+  override def new_op(name: String, args: List[Int], ret: Option[Int], start: Int, end: Int): Operation =
     name match
-      case "Read" => new Read(this, args, ret)
-      case "Write" => new Write(this, args, ret)
-      case _ => super.new_op(name, args, ret)
+      case "Read" => new Read(this, args, ret, start, end)
+      case "Write" => new Write(this, args, ret, start, end)
+      case _ => super.new_op(name, args, ret, start, end)
 
-class Read(obj: Crdt, in: List[Int], out: Option[Int]) extends Operation(obj, Array(), Some(DataType.Int), "Read"):
+class Read(obj: Crdt, in: List[Int], out: Option[Int], start: Int, end: Int) extends Operation(obj, Array(), Some(DataType.Int), start, end, "Read"):
   if in.nonEmpty then throw new IllegalArgumentException("Read has 0 arguments, but got " + in.mkString(","))
   if out.isEmpty then throw new IllegalArgumentException("Read returns something, but got nothing")
   override val output: Option[Int] = out
@@ -20,7 +20,7 @@ class Read(obj: Crdt, in: List[Int], out: Option[Int]) extends Operation(obj, Ar
 
   def l(): Boolean = true // Assume operation completed at some point
 
-class Write(obj: Crdt, in: List[Int], out: Option[Int]) extends Operation(obj, Array(DataType.Int), None, "Write"):
+class Write(obj: Crdt, in: List[Int], out: Option[Int], start: Int, end: Int) extends Operation(obj, Array(DataType.Int), None, start, end, "Write"):
   if out.isDefined then throw new IllegalArgumentException("Write returns nothing, but got " + out)
   if in.size != 1 then throw new IllegalArgumentException("Write has 1 argument, but got " + in.mkString(","))
   override val input = Array(in.head)

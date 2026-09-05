@@ -7,12 +7,12 @@ enum DataType:
 
 // Represents an operation. Objects of this class are op-exes.
 abstract class Operation(val obj: Crdt, val inputTypes: Array[DataType],
-                         val outputType: Option[DataType], val name: String = "") {
+                         val outputType: Option[DataType], start: Int, end: Int, val name: String = "") {
 
   val input: Array[dataType] = Array()
   val output: Option[dataType] = None
 
-  var interval: (Int, Int) = (0, 0)
+  var interval: (Int, Int) = (start, end)
   assert(interval._1 <= interval._2)
 
   val uuid: UUID = UUID.randomUUID() // To keep set semantics working

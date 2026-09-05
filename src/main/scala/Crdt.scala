@@ -1,5 +1,5 @@
 abstract class Crdt(val name: String):
-  def new_op(name: String, args: List[Int], ret: Option[Int]): Operation =
+  def new_op(name: String, args: List[Int], ret: Option[Int], start: Int, end: Int): Operation =
     throw new IllegalArgumentException("Operation not found")
 
 object Crdt:

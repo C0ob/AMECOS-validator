@@ -1,6 +1,5 @@
 grammar Amecos;
 
-
 /** Lexer rules */
 WS : [ \t\r\n]+ -> skip ;
 
@@ -10,9 +9,11 @@ NAME : [a-zA-Z] [a-zA-Z0-9_]* ;
 
 /** Parser rules */
 
-app: init+ opex* order*;
+app: consistency* init+ opex* order*;
+consistency: 'check' NAME;
 init: 'new' NAME OBJ;
 args: NUM (',' NUM)*;
-opex: OBJ '.' NAME '(' args? ')' ('/' NUM)?;
+interval: '(' NUM ',' NUM ')';
+opex: OBJ '.' NAME '(' args? ')' ('/' NUM)? interval;
 order: NUM '->' NUM;
 
