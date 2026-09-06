@@ -5,6 +5,8 @@ object Ast:
 
   case class InitObj(name: String, crdt: Crdt) extends Ast
 
+  case class Proc(process: Process, opexes: List[Operation]) extends Ast
+
   case class Opex(operation: Operation) extends Ast
 
   case class Args(args: List[Int]) extends Ast
@@ -12,5 +14,7 @@ object Ast:
   case class Order(first: Operation, second: Operation) extends Ast
   
   case class Interval(start: Int, end: Int) extends Ast
+
+  case class OpexRef(operation: Operation) extends Ast
   
-  case class ConsistencyCheck(consistency: Consistency) extends Ast
+  case class Consistencies(consistencies: Set[Consistency]) extends Ast

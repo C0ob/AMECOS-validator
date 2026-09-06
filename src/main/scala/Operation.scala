@@ -1,12 +1,10 @@
-import java.util.UUID
-
 type dataType = Int | Boolean | String
 
 enum DataType:
   case Int, Boolean, String
 
 // Represents an operation. Objects of this class are op-exes.
-abstract class Operation(val obj: Crdt, val inputTypes: Array[DataType],
+abstract class Operation(val process: Process, val obj: Crdt, val inputTypes: Array[DataType],
                          val outputType: Option[DataType], start: Int, end: Int, val name: String = "") {
 
   val input: Array[dataType] = Array()
@@ -14,8 +12,6 @@ abstract class Operation(val obj: Crdt, val inputTypes: Array[DataType],
 
   var interval: (Int, Int) = (start, end)
   assert(interval._1 <= interval._2)
-
-  val uuid: UUID = UUID.randomUUID() // To keep set semantics working
 
   var prev: Set[Operation] = Set() // Derived from partial order
   var next: Set[Operation] = Set()
@@ -34,7 +30,7 @@ abstract class Operation(val obj: Crdt, val inputTypes: Array[DataType],
 
   def l(): Boolean // Liveness
 
-  override def toString: String = name + input.mkString("(", ", ", ")") + "/" + output.mkString
+  override def toString: String = name + input.mkString("(", ", ", ")") + "/" + output.mkString + " " + interval.toString()
 
   def legal(): Boolean = {
     println("!--- Verifying " + this)
@@ -50,4 +46,5 @@ abstract class Operation(val obj: Crdt, val inputTypes: Array[DataType],
     else println(Console.RED + "Illegal" + Console.RESET)
     res
   }
+
 }

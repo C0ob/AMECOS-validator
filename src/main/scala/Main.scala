@@ -29,9 +29,19 @@ object Main:
     new AstBuilder().visitApp(tree)
 
   def main(args: Array[String]): Unit =
-    if args.isEmpty then throw IllegalArgumentException("Please provide filepath")
+    if args.isEmpty then {
+      println(Console.RED + "Please provide filepath")
+      return
+    }
 
-    val ast: App = parseFile(args(0))
+    var ast: App = null
+    try {
+      ast = parseFile(args(0))
+    } catch {
+      case e: Exception =>
+        println(Console.RED + "Error parsing file: " + e.getMessage + Console.RESET)
+        return
+    }
     val history = History(ast.opexes.toSet, ast.ordering)
 
     val legality = history.legal()

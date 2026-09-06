@@ -1,10 +1,13 @@
 abstract class Consistency(val name: String):
   def check(history: History): Boolean
-  
 
-class Linearizability extends Consistency("Linearizability"):
-  def check(history: History): Boolean = Consistency.totally_ordered(history) && Consistency.real_time_ordered(history)
+  override def toString: String = name
 
+object Linearizability extends Consistency("Linearizability"):
+  override def check(history: History): Boolean = Consistency.totally_ordered(history) && Consistency.real_time_ordered(history)
+
+object SeqCons extends Consistency("SeqCons"):
+  override def check(history: History): Boolean = Consistency.process_ordered(history) && Consistency.process_ordered(history)
 
 object Consistency:
   def totally_ordered(history: History): Boolean =
@@ -18,6 +21,11 @@ object Consistency:
     }
     count == history.opExes.size - 1
 
+  def process_ordered(history: History): Boolean =
+    val processes = history.opExes.map(_.process)
+    processes.forall(p => real_time_ordered(History(history.opExes.filter(_.process == p), history.ordering)))
+
+
   def real_time_ordered(history: History): Boolean =
     history.opExes.forall { first =>
       history.opExes.forall { second =>
@@ -28,5 +36,6 @@ object Consistency:
 
   def get_consistency(name: String): Consistency =
     name match
-      case "Linearizability" => new Linearizability()
+      case "Linearizability" =>  Linearizability
+      case "SeqCons" => SeqCons
       case _ => throw new IllegalArgumentException("Consistency type not found: " + name)

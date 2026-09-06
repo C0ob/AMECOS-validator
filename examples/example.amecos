@@ -1,8 +1,18 @@
-check Linearizability
+check Linearizability, SeqCons
 
 new Register R
 
-R.Write(1) (0, 2)
-R.Read()/1 (1, 3)
+process p1:
+    R.Write(1) (1, 2)
+    R.Read()/1 (1, 3)
+    R.Read()/2 (7, 9)
 
-0->1
+process p2:
+    R.Read()/1 (0, 0)
+    R.Write(2) (3, 4)
+
+
+p1.0->p1.1
+p1.1->p2.0
+p2.0->p2.1
+p2.1->p1.2
