@@ -40,7 +40,8 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
   override def visitInit(ctx: AmecosParser.InitContext): InitObj =
     val name = ctx.OBJ().getText
     val crdt_type = ctx.NAME().getText
-    InitObj(name, Crdt.new_crdt(crdt_type))
+    val crdt = Crdt.new_crdt(crdt_type, name)
+    InitObj(name, crdt)
 
   /** Creates a process and all of its op-exes. */
   override def visitProcess(ctx: AmecosParser.ProcessContext): Proc =

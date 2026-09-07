@@ -7,7 +7,7 @@ abstract class Crdt(val name: String):
 /** Factory for the CRDT specifications supported by the DSL. */
 object Crdt:
   /** Creates a registered CRDT implementation by its DSL type name. */
-  def new_crdt(name: String): Crdt =
-    name match
+  def new_crdt(crdt_type: String, name: String): Crdt =
+    crdt_type match
       case "Register" => new Register(name)
       case _ => throw new IllegalArgumentException("Crdt type not found")

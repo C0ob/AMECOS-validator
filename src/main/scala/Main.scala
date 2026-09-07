@@ -1,59 +1,83 @@
-import Amecos.{AmecosLexer, AmecosParser}
 import Ast.App
-import org.antlr.v4.runtime.*
 
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 
-/** Command-line entrypoint for validating one `.amecos` file. */
+/** Command-line entrypoint for validating and visualizing one `.amecos` file. */
 object Main:
-  /** Parses a file into the application AST. */
-  private def parseFile(path: String): App =
-    val input = CharStreams.fromPath(Paths.get(path))
-    val lexer = new AmecosLexer(input)
-    val tokens = new CommonTokenStream(lexer)
-    val parser = new AmecosParser(tokens)
+  private enum DiagramFormat(val extension: String):
+    case Svg extends DiagramFormat("svg")
+    case Png extends DiagramFormat("png")
+    case Pdf extends DiagramFormat("pdf")
 
-    parser.removeErrorListeners()
-    parser.addErrorListener(new BaseErrorListener {
-      override def syntaxError(
-                                recognizer: Recognizer[_, _],
-                                offendingSymbol: Any,
-                                line: Int,
-                                charPositionInLine: Int,
-                                msg: String,
-                                e: RecognitionException
-                              ): Unit = {
-        throw new RuntimeException(s"Syntax error at $line:$charPositionInLine — $msg")
-      }
-    })
+  private case class Options(path: String, diagram: Boolean, format: DiagramFormat)
 
-    val tree = parser.app()
-    new AstBuilder().visitApp(tree)
+  private def parseOptions(args: Array[String]): Either[String, Options] =
+    var diagram = false
+    var format = DiagramFormat.Svg
+    var path: Option[String] = None
+    var index = 0
 
-  /** Validates the supplied file and prints legality and requested checks. */
+    while index < args.length do
+      args(index) match
+        case "--diagram" => diagram = true
+        case "--format" =>
+          index += 1
+          if index >= args.length then return Left("--format requires svg, png, or pdf")
+          args(index).toLowerCase match
+            case "svg" => format = DiagramFormat.Svg
+            case "png" => format = DiagramFormat.Png
+            case "pdf" => format = DiagramFormat.Pdf
+            case value => return Left(s"Unknown diagram format: $value")
+        case value if value.startsWith("--") => return Left(s"Unknown option: $value")
+        case value =>
+          if path.isDefined then return Left("Please provide exactly one filepath")
+          path = Some(value)
+      index += 1
+
+    path match
+      case Some(value) => Right(Options(value, diagram, format))
+      case None => Left("Please provide filepath")
+
+  private def writeDiagram(inputPath: String, history: History, format: DiagramFormat): Unit =
+    val input = Paths.get(inputPath)
+    val base = removeExtension(input)
+    val imagePath = Paths.get(base.toString + "." + format.extension)
+    val svg = HistoryDiagram.render(history)
+    HistoryDiagram.renderImage(svg, imagePath, format.extension)
+    println(s"Diagram image written to $imagePath")
+
+  private def removeExtension(path: Path): Path =
+    val fileName = path.getFileName.toString
+    val dot = fileName.lastIndexOf('.')
+    if dot <= 0 then path.resolveSibling(fileName)
+    else path.resolveSibling(fileName.substring(0, dot))
+
+  /** Validates the supplied file and optionally writes its process diagram. */
   def main(args: Array[String]): Unit =
-    if args.isEmpty then {
-      println(Console.RED + "Please provide filepath")
-      return
-    }
+    parseOptions(args) match
+      case Left(error) =>
+        println(Console.RED + error + Console.RESET)
+      case Right(options) =>
+        var ast: App = null
+        try ast = HistoryParser.parseFile(options.path)
+        catch
+          case e: Exception =>
+            println(Console.RED + "Error parsing file: " + e.getMessage + Console.RESET)
+            return
 
-    var ast: App = null
-    try {
-      ast = parseFile(args(0))
-    } catch {
-      case e: Exception =>
-        println(Console.RED + "Error parsing file: " + e.getMessage + Console.RESET)
-        return
-    }
-    val history = History(ast.opexes.toSet, ast.ordering)
+        val history = History(ast.opexes.toSet, ast.ordering)
+        val legality = history.legal()
+        if legality then println(Console.GREEN + "History is legal" + Console.RESET)
+        else println(Console.RED + "History is illegal" + Console.RESET)
 
-    val legality = history.legal()
-    if legality then println(Console.GREEN + "History is legal" + Console.RESET) else println(Console.RED + "History is illegal" + Console.RESET)
+        if ast.consistensies.nonEmpty then println("!--- Checking consistencies:")
+        ast.consistensies.foreach(c =>
+          if c.check(history) then println(Console.GREEN + c.name + " is satisfied" + Console.RESET)
+          else println(Console.RED + c.name + " is not satisfied" + Console.RESET)
+        )
 
-    if ast.consistensies.nonEmpty then println("!--- Checking consistencies:")
-    ast.consistensies.foreach(c =>
-      if c.check(history) then
-        println(Console.GREEN + c.name + " is satisfied" + Console.RESET)
-        else
-        println(Console.RED + c.name + " is not satisfied" + Console.RESET)
-    )
+        if options.diagram then
+          try writeDiagram(options.path, history, options.format)
+          catch
+            case e: Exception =>
+              println(Console.RED + "Error generating diagram: " + e.getMessage + Console.RESET)
