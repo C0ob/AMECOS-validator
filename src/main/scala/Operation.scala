@@ -1,9 +1,15 @@
-type dataType = Int | Boolean | String
+/** Values accepted as operation arguments and results. (only support Int for now) */
+type dataType = Int 
 
+/** Runtime types declared by an operation's sequential specification. */
 enum DataType:
-  case Int, Boolean, String
+  /** Integer data. */
+  case Int
 
-// Represents an operation. Objects of this class are op-exes.
+/** An operation execution (op-ex) in an AMECOS history.
+  *
+  * Its V/S/L predicates describe validity, safety, and liveness respectively.
+  */
 abstract class Operation(val process: Process, val obj: Crdt, val inputTypes: Array[DataType],
                          val outputType: Option[DataType], start: Int, end: Int, val name: String = "") {
 
@@ -16,22 +22,29 @@ abstract class Operation(val process: Process, val obj: Crdt, val inputTypes: Ar
   var prev: Set[Operation] = Set() // Derived from partial order
   var next: Set[Operation] = Set()
 
-  def context(slave: Boolean = false): Set[Operation] = // All operations that happened before this one
+  /** Operations ordered before this op-ex by the transitive partial order. */
+  def context(slave: Boolean = false): Set[Operation] =
     if prev.isEmpty then if slave then Set(this) else Set()
     else prev ++ prev.flatMap(o => o.context(true))
 
-  def future(slave: Boolean = false): Set[Operation] = // All operations that happen after this one
+  /** Operations ordered after this op-ex by the transitive partial order. */
+  def future(slave: Boolean = false): Set[Operation] =
     if next.isEmpty then if slave then Set(this) else Set()
     else next ++ next.flatMap(o => o.future(true))
 
-  def v(): Boolean // Validity
+  /** AMECOS validity predicate. */
+  def v(): Boolean
 
-  def s(): Boolean // Safety
+  /** AMECOS safety predicate. */
+  def s(): Boolean
 
-  def l(): Boolean // Liveness
+  /** AMECOS liveness predicate. */
+  def l(): Boolean
 
+  /** Formats the operation, result, and execution interval for diagnostics. */
   override def toString: String = name + input.mkString("(", ", ", ")") + "/" + output.mkString + " " + interval.toString()
 
+  /** Checks the op-ex's V, S, and L predicates. */
   def legal(): Boolean = {
     println("!--- Verifying " + this)
     next.foreach(o => println("" + this + "->" + o))

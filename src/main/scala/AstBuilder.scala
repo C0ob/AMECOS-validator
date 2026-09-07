@@ -4,6 +4,7 @@ import Ast.*
 import scala.collection.JavaConverters.asScalaBufferConverter
 import scala.collection.convert.ImplicitConversions.`map AsJavaMap`
 
+/** Builds the application AST and domain objects from the generated ANTLR tree. */
 class AstBuilder extends AmecosBaseVisitor[Ast]:
 
   private var objMap: Map[String, Crdt] = Map()
@@ -12,6 +13,7 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
   private var order: Map[Operation, Set[Operation]] = Map()
   private var consistencies: Set[Consistency] = Set()
 
+  /** Visits the complete `.amecos` application. */
   override def visitApp(ctx: AmecosParser.AppContext): App =
     if ctx.consistencies() != null then consistencies = visitConsistencies(ctx.consistencies()).consistencies
     println("[parser] Consistencies: " + consistencies.mkString(","))
@@ -30,27 +32,33 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
     )
     App(objMap, opexes, order, consistencies)
 
+  /** Resolves consistency names from a `check` clause. */
   override def visitConsistencies(ctx: AmecosParser.ConsistenciesContext): Consistencies =
     Consistencies(ctx.NAME().asScala.map(n => Consistency.get_consistency(n.getText)).toSet)
 
+  /** Creates an object from a `new` declaration. */
   override def visitInit(ctx: AmecosParser.InitContext): InitObj =
     val name = ctx.OBJ().getText
     val crdt_type = ctx.NAME().getText
     InitObj(name, Crdt.new_crdt(crdt_type))
 
+  /** Creates a process and all of its op-exes. */
   override def visitProcess(ctx: AmecosParser.ProcessContext): Proc =
     val process = Process(ctx.PROC().getText)
     val ops = ctx.opex().asScala.map(o => visitOpex(o, process).operation).toList
     Proc(process, ops)
 
+  /** Converts optional numeric arguments to the AST representation. */
   override def visitArgs(ctx: AmecosParser.ArgsContext): Args =
     if ctx == null then Args(List())
     else Args(ctx.NUM().asScala.toList.map(n => Integer.parseInt(n.toString)))
 
+  /** Converts an op-ex interval to an AST interval. */
   override def visitInterval(ctx: AmecosParser.IntervalContext): Interval =
     val nums = ctx.NUM().asScala.map(n => Integer.parseInt(n.getText)).toList
     Interval(nums.head, nums(1))
 
+  /** Creates an object-specific operation execution. */
   def visitOpex(ctx: AmecosParser.OpexContext, process: Process): Opex =
     val obj_name = ctx.OBJ().getText
     val op_name = ctx.NAME().getText
@@ -63,18 +71,18 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
     catch 
       case e: Exception => throw new IllegalArgumentException(e.getMessage + ": " + ctx.getText)
 
+  /** Resolves a process/index reference to a previously parsed op-ex. */
   override def visitOpexRef(ctx: AmecosParser.OpexRefContext): OpexRef =
     val process = Process(ctx.PROC().getText)
     try 
       OpexRef(opexes.filter(_.process == process)(Integer.parseInt(ctx.NUM().getText)))
     catch 
       case e: IndexOutOfBoundsException => throw new IllegalArgumentException("Invalid opex index: " + ctx.getText)
-    
 
+
+  /** Converts an ordering edge into an AST node. */
   override def visitOrder(ctx: AmecosParser.OrderContext): Order = {
     val ops = ctx.opexRef().asScala.map(o => visitOpexRef(o).operation).toList
     Order(ops.head, ops(1))
 
   }
-
-    

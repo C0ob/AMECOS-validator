@@ -4,7 +4,9 @@ import org.antlr.v4.runtime.*
 
 import java.nio.file.Paths
 
+/** Command-line entrypoint for validating one `.amecos` file. */
 object Main:
+  /** Parses a file into the application AST. */
   private def parseFile(path: String): App =
     val input = CharStreams.fromPath(Paths.get(path))
     val lexer = new AmecosLexer(input)
@@ -28,6 +30,7 @@ object Main:
     val tree = parser.app()
     new AstBuilder().visitApp(tree)
 
+  /** Validates the supplied file and prints legality and requested checks. */
   def main(args: Array[String]): Unit =
     if args.isEmpty then {
       println(Console.RED + "Please provide filepath")
