@@ -48,7 +48,7 @@ import "fragments/processes.amecos"
 Imports may contain further imports, but imported files are fragments rather
 than complete `.amecos` applications.
 
-## Search without ordering
+## Partial order search algorithm
 
 If no ordering edges are provided, the validator searches for an order that is
 legal and satisfies the requested consistency models. The result may remain a
