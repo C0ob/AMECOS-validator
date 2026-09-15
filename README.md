@@ -36,6 +36,25 @@ Run it with:
 sbt 'run examples/example.amecos'
 ```
 
+## Imports
+
+Files can textually include quoted paths before parsing. Relative paths are
+resolved from the importing file:
+
+```amecos
+import "fragments/processes.amecos"
+```
+
+Imports may contain further imports, but imported files are fragments rather
+than complete `.amecos` applications.
+
+## Search without ordering
+
+If no ordering edges are provided, the validator searches for an order that is
+legal and satisfies the requested consistency models. The result may remain a
+partial order when the consistency models allow concurrent operations to stay
+unordered; models such as linearizability require a complete order.
+
 ## Visualize a history
 
 Generate an SVG history diagram with one colored horizontal timeline per
