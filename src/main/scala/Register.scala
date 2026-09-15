@@ -21,7 +21,7 @@ class Read(process: Process, obj: Object, in: List[Int], out: Option[Int], start
     o.name == "Write" &&
       o.input(0) == output.get &&
       o.obj == this.obj &&
-      !context(order).intersect(o.future(order)).exists(p => p.name == "Write" && p.input(0) == output.get && p.obj == this.obj))
+      !context(order).intersect(o.future(order)).exists(p => p.name == "Write" && p.input(0) != output.get && p.obj == this.obj))
 
   /** Register operations are assumed to complete. */
   def l(order: Order): Boolean = true

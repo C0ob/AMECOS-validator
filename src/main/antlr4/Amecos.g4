@@ -10,7 +10,7 @@ NAME : [a-zA-Z] [a-zA-Z0-9_]* ;
 
 /** Parser rules */
 
-app: consistencies? init+ process* order*;
+app: consistencies? init+ process* order* EOF;
 consistencies: 'check' NAME (',' NAME)*;
 init: 'new' NAME OBJ;
 args: NUM (',' NUM)*;
@@ -19,4 +19,3 @@ process: 'process' PROC ':' opex*;
 opex: OBJ '.' NAME '(' args? ')' ('/' NUM)? interval;
 opexRef: PROC '.' NUM;
 order: opexRef '->' opexRef;
-
