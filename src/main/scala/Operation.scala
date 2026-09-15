@@ -10,7 +10,7 @@ enum DataType:
   *
   * Its V/S/L predicates describe validity, safety, and liveness respectively.
   */
-abstract class Operation(val process: Process, val obj: Crdt, val inputTypes: Array[DataType],
+abstract class Operation(val process: Process, val obj: Object, val inputTypes: Array[DataType],
                          val outputType: Option[DataType], start: Int, end: Int, val name: String = "") {
 
   val input: Array[dataType] = Array()

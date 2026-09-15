@@ -1,13 +1,12 @@
 import Amecos.{AmecosBaseVisitor, AmecosParser}
 import Ast.*
 
-import scala.collection.JavaConverters.asScalaBufferConverter
-import scala.collection.convert.ImplicitConversions.`map AsJavaMap`
+import scala.jdk.CollectionConverters.*
 
 /** Builds the application AST and domain objects from the generated ANTLR tree. */
 class AstBuilder extends AmecosBaseVisitor[Ast]:
 
-  private var objMap: Map[String, Crdt] = Map()
+  private var objMap: Map[String, Object] = Map()
   private var processes: Set[Process] = Set()
   private var opexes: List[Operation] = List()
   private var order: Map[Operation, Set[Operation]] = Map()
@@ -17,7 +16,7 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
   override def visitApp(ctx: AmecosParser.AppContext): App =
     if ctx.consistencies() != null then consistencies = visitConsistencies(ctx.consistencies()).consistencies
     println("[parser] Consistencies: " + consistencies.mkString(","))
-    objMap = ctx.init.asScala.map(visitInit).map(p => (p.name, p.crdt)).toMap
+    objMap = ctx.init.asScala.map(visitInit).map(p => (p.name, p.obj)).toMap
     println("[parser] Initialized objects: " + objMap.keys.mkString(","))
 
     ctx.process().asScala.map(visitProcess).foreach( p =>
@@ -27,7 +26,7 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
     println("[parser] parsed " + opexes.length + " op-exes")
 
     ctx.order().asScala.map(visitOrder).foreach(o =>
-      if order.contains(o.first) then order.replace(o.first, order(o.first) + o.second)
+      if order.contains(o.first) then order = order.updated(o.first, order(o.first) + o.second)
       else order = order + Tuple2(o.first, Set(o.second))
     )
     App(objMap, opexes, order, consistencies)
@@ -39,9 +38,9 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
   /** Creates an object from a `new` declaration. */
   override def visitInit(ctx: AmecosParser.InitContext): InitObj =
     val name = ctx.OBJ().getText
-    val crdt_type = ctx.NAME().getText
-    val crdt = Crdt.new_crdt(crdt_type, name)
-    InitObj(name, crdt)
+    val object_type = ctx.NAME().getText
+    val obj = Object.new_object(object_type, name)
+    InitObj(name, obj)
 
   /** Creates a process and all of its op-exes. */
   override def visitProcess(ctx: AmecosParser.ProcessContext): Proc =

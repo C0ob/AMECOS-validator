@@ -1,5 +1,5 @@
 /** Shared register specification used by the AMECOS examples. */
-class Register(name: String) extends Crdt(name):
+class Register(name: String) extends Object(name):
   /** Creates a register read or write op-ex. */
   override def new_op(process: Process, name: String, args: List[Int], ret: Option[Int], start: Int, end: Int): Operation =
     name match
@@ -8,7 +8,7 @@ class Register(name: String) extends Crdt(name):
       case _ => super.new_op(process, name, args, ret, start, end)
 
 /** Register read operation; its return value must be the current register value. */
-class Read(process: Process, obj: Crdt, in: List[Int], out: Option[Int], start: Int, end: Int) extends Operation(process, obj, Array(), Some(DataType.Int), start, end, "Read"):
+class Read(process: Process, obj: Object, in: List[Int], out: Option[Int], start: Int, end: Int) extends Operation(process, obj, Array(), Some(DataType.Int), start, end, "Read"):
   if in.nonEmpty then throw new IllegalArgumentException("Read has 0 arguments, but got " + in.mkString(","))
   if out.isEmpty then throw new IllegalArgumentException("Read returns something, but got nothing")
   override val output: Option[Int] = out
@@ -27,7 +27,7 @@ class Read(process: Process, obj: Crdt, in: List[Int], out: Option[Int], start: 
   def l(): Boolean = true
 
 /** Register write operation. */
-class Write(process: Process, obj: Crdt, in: List[Int], out: Option[Int], start: Int, end: Int) extends Operation(process, obj, Array(DataType.Int), None, start, end, "Write"):
+class Write(process: Process, obj: Object, in: List[Int], out: Option[Int], start: Int, end: Int) extends Operation(process, obj, Array(DataType.Int), None, start, end, "Write"):
   if out.isDefined then throw new IllegalArgumentException("Write returns nothing, but got " + out)
   if in.size != 1 then throw new IllegalArgumentException("Write has 1 argument, but got " + in.mkString(","))
   override val input = Array(in.head)

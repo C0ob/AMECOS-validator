@@ -11,7 +11,7 @@ sequential consistency:
 
 check Linearizability, SeqCons // Indicate that we want to check linearizability and SeqCons
 
-new Register R // Create a new CRDT of type Register
+new Register R // Create a new object of type Register
 
 // Define process and their opexes: Object.Operation(Arguments)/Returns (start, end)
 process p1:

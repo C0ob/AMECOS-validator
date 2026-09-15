@@ -4,10 +4,10 @@ sealed trait Ast
 /** Constructors for the parser's intermediate representation. */
 object Ast:
   /** Complete parsed application: objects, op-exes, ordering, and checks. */
-  case class App(objs: Map[String, Crdt], opexes: List[Operation], ordering: Map[Operation, Set[Operation]], consistensies: Set[Consistency]) extends Ast
+  case class App(objs: Map[String, Object], opexes: List[Operation], ordering: Map[Operation, Set[Operation]], consistensies: Set[Consistency]) extends Ast
 
   /** Parsed object initialization. */
-  case class InitObj(name: String, crdt: Crdt) extends Ast
+  case class InitObj(name: String, obj: Object) extends Ast
 
   /** Parsed process and its op-exes. */
   case class Proc(process: Process, opexes: List[Operation]) extends Ast
