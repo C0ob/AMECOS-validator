@@ -20,12 +20,12 @@ object Ast:
 
   /** Parsed partial-order edge between two op-exes. */
   case class OrderEdge(first: Operation, second: Operation) extends Ast
-  
+
   /** Parsed inclusive invocation/response interval. */
   case class Interval(start: Int, end: Int) extends Ast
 
   /** Parsed reference to an op-ex by process and index. */
   case class OpexRef(operation: Operation) extends Ast
-  
+
   /** Parsed set of requested consistency checks. */
   case class Consistencies(consistencies: Set[Consistency]) extends Ast

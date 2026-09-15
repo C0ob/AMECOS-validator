@@ -6,11 +6,11 @@ import scala.jdk.CollectionConverters.*
 /** Builds the application AST and domain objects from the generated ANTLR tree. */
 class AstBuilder extends AmecosBaseVisitor[Ast]:
 
+  var opExes: List[Operation] = List()
+  var history: History = null // could have been done more cleanly, I know :p
+  var order: Order = null
   private var objMap: Map[String, Object] = Map()
   private var processes: Set[Process] = Set()
-  var opExes: List[Operation] = List()
-  var history: History = null // could have been done more cleanly, i know :p
-  var order: Order = null
   private var consistencies: Set[Consistency] = Set()
 
   /** Visits the complete `.amecos` application. */
@@ -20,11 +20,11 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
     objMap = ctx.init.asScala.map(visitInit).map(p => (p.name, p.obj)).toMap
     println("[parser] Initialized objects: " + objMap.keys.mkString(","))
 
-    ctx.process().asScala.map(visitProcess).foreach( p =>
+    ctx.process().asScala.map(visitProcess).foreach(p =>
       processes = processes + p.process
       opExes = opExes ++ p.opExes
     )
-    
+
     history = History(opExes.toSet)
     println("[parser] parsed " + opExes.size + " op-exes")
     order = Order(history)
@@ -51,6 +51,19 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
     val ops = ctx.opex().asScala.map(o => visitOpex(o, process).operation).toList
     Proc(process, ops)
 
+  /** Creates an object-specific operation execution. */
+  def visitOpex(ctx: AmecosParser.OpexContext, process: Process): Opex =
+    val obj_name = ctx.OBJ().getText
+    val op_name = ctx.NAME().getText
+    val args = visitArgs(ctx.args()).args
+    val interval = visitInterval(ctx.interval())
+    val ret = if ctx.NUM() == null then None else Some(Integer.parseInt(ctx.NUM().getText))
+    val obj = objMap.getOrElse(obj_name, throw new Exception("Object " + obj_name + " not found: " + ctx.getText))
+    try
+      Opex(obj.new_op(process, op_name, args, ret, interval.start, interval.end))
+    catch
+      case e: Exception => throw new IllegalArgumentException(e.getMessage + ": " + ctx.getText)
+
   /** Converts optional numeric arguments to the AST representation. */
   override def visitArgs(ctx: AmecosParser.ArgsContext): Args =
     if ctx == null then Args(List())
@@ -61,31 +74,17 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
     val nums = ctx.NUM().asScala.map(n => Integer.parseInt(n.getText)).toList
     Interval(nums.head, nums(1))
 
-  /** Creates an object-specific operation execution. */
-  def visitOpex(ctx: AmecosParser.OpexContext, process: Process): Opex =
-    val obj_name = ctx.OBJ().getText
-    val op_name = ctx.NAME().getText
-    val args = visitArgs(ctx.args()).args
-    val interval = visitInterval(ctx.interval())
-    val ret = if ctx.NUM() == null then None else Some(Integer.parseInt(ctx.NUM().getText))
-    val obj = objMap.getOrElse(obj_name, throw new Exception("Object " + obj_name + " not found: " + ctx.getText))
-    try 
-      Opex(obj.new_op(process, op_name, args, ret, interval.start, interval.end))
-    catch 
-      case e: Exception => throw new IllegalArgumentException(e.getMessage + ": " + ctx.getText)
-
-  /** Resolves a process/index reference to a previously parsed op-ex. */
-  override def visitOpexRef(ctx: AmecosParser.OpexRefContext): OpexRef =
-    val process = Process(ctx.PROC().getText)
-    try 
-      OpexRef(opExes.filter(_.process == process)(Integer.parseInt(ctx.NUM().getText)))
-    catch 
-      case e: IndexOutOfBoundsException => throw new IllegalArgumentException("Invalid opex index: " + ctx.getText)
-
-
   /** Converts an ordering edge into an AST node. */
   override def visitOrder(ctx: AmecosParser.OrderContext): OrderEdge = {
     val ops = ctx.opexRef().asScala.map(o => visitOpexRef(o).operation).toList
     OrderEdge(ops.head, ops(1))
 
   }
+
+  /** Resolves a process/index reference to a previously parsed op-ex. */
+  override def visitOpexRef(ctx: AmecosParser.OpexRefContext): OpexRef =
+    val process = Process(ctx.PROC().getText)
+    try
+      OpexRef(opExes.filter(_.process == process)(Integer.parseInt(ctx.NUM().getText)))
+    catch
+      case e: IndexOutOfBoundsException => throw new IllegalArgumentException("Invalid opex index: " + ctx.getText)

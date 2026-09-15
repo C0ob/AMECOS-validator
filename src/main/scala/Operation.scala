@@ -1,15 +1,10 @@
 /** Values accepted as operation arguments and results. (only support Int for now) */
-type dataType = Int 
-
-/** Runtime types declared by an operation's sequential specification. */
-enum DataType:
-  /** Integer data. */
-  case Int
+type dataType = Int
 
 /** An operation execution (op-ex) in an AMECOS history.
-  *
-  * Its V/S/L predicates describe validity, safety, and liveness respectively.
-  */
+ *
+ * Its V/S/L predicates describe validity, safety, and liveness respectively.
+ */
 abstract class Operation(val process: Process, val obj: Object, val inputTypes: Array[DataType],
                          val outputType: Option[DataType], start: Int, end: Int, val name: String = "") {
 
@@ -20,7 +15,8 @@ abstract class Operation(val process: Process, val obj: Object, val inputTypes: 
   assert(interval._1 <= interval._2)
 
   def prev(order: Order): Set[Operation] = order.prev(this)
-  def next(order: Order): Set[Operation ] = order.next(this)
+
+  def next(order: Order): Set[Operation] = order.next(this)
 
   /** Operations ordered before this op-ex by the transitive partial order. */
   def context(order: Order): Set[Operation] = order.context(this)
@@ -58,3 +54,8 @@ abstract class Operation(val process: Process, val obj: Object, val inputTypes: 
   }
 
 }
+
+/** Runtime types declared by an operation's sequential specification. */
+enum DataType:
+  /** Integer data. */
+  case Int

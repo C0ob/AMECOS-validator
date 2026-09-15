@@ -3,50 +3,20 @@ import scala.collection.mutable
 /** A partial order over the operations in a history. */
 class Order(val history: History):
 
-  var numEdges = 0
-
   /** Indexes in this array identify operations in the adjacency sets. */
   private val operations: Vector[Operation] = history.opExes.toVector
   private val opMap: Map[Operation, Int] = operations.zipWithIndex.toMap
-
   /** Direct successors and predecessors. */
   private val adjacency: Array[mutable.Set[Int]] =
     Array.fill(operations.length)(mutable.Set.empty[Int])
-
   private val reverseAdjacency: Array[mutable.Set[Int]] =
     Array.fill(operations.length)(mutable.Set.empty[Int])
-
   /** Reachability caches, invalidated whenever a new edge is added. */
   private val futureMemo: Array[Option[Set[Int]]] =
     Array.fill(operations.length)(None)
   private val contextMemo: Array[Option[Set[Int]]] =
     Array.fill(operations.length)(None)
-
-  private def idOf(op: Operation): Int =
-    opMap.getOrElse(op, throw new IllegalArgumentException("Operation is not part of this order"))
-
-  private def reachableIds(
-                            start: Int,
-                            edges: Array[mutable.Set[Int]],
-                            memo: Array[Option[Set[Int]]]
-                          ): Set[Int] =
-    memo(start) match
-      case Some(reachable) => reachable
-      case None =>
-        val reachable = mutable.Set.empty[Int]
-        edges(start).foreach { nextId =>
-          reachable += nextId
-          reachable ++= reachableIds(nextId, edges, memo)
-        }
-        val result = reachable.toSet
-        memo(start) = Some(result)
-        result
-
-  private def resetMemo(): Unit =
-    futureMemo.indices.foreach { id =>
-      futureMemo(id) = None
-      contextMemo(id) = None
-    }
+  var numEdges = 0
 
   /** Adds a direct ordering edge: `before` must precede `after`. */
   def add(before: Operation, after: Operation): Unit =
@@ -67,6 +37,9 @@ class Order(val history: History):
   /** Direct successors of an operation. */
   def next(op: Operation): Set[Operation] =
     adjacency(idOf(op)).iterator.map(operations).toSet
+
+  private def idOf(op: Operation): Int =
+    opMap.getOrElse(op, throw new IllegalArgumentException("Operation is not part of this order"))
 
   /** Direct predecessors of an operation. */
   def prev(op: Operation): Set[Operation] =
@@ -102,6 +75,29 @@ class Order(val history: History):
 
   private def reference(id: Int): String =
     f"[$id%02d]"
+
+  private def reachableIds(
+                            start: Int,
+                            edges: Array[mutable.Set[Int]],
+                            memo: Array[Option[Set[Int]]]
+                          ): Set[Int] =
+    memo(start) match
+      case Some(reachable) => reachable
+      case None =>
+        val reachable = mutable.Set.empty[Int]
+        edges(start).foreach { nextId =>
+          reachable += nextId
+          reachable ++= reachableIds(nextId, edges, memo)
+        }
+        val result = reachable.toSet
+        memo(start) = Some(result)
+        result
+
+  private def resetMemo(): Unit =
+    futureMemo.indices.foreach { id =>
+      futureMemo(id) = None
+      contextMemo(id) = None
+    }
 
 
 object Order:

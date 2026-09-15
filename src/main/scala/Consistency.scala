@@ -42,7 +42,7 @@ object Consistency:
   def real_time_ordered(order: Order, processOps: Set[Operation]): Boolean =
     processOps.forall { first =>
       processOps.forall { second =>
-          first.interval._2 >= second.interval._1 ||
+        first.interval._2 >= second.interval._1 ||
           first.future(order).contains(second)
       }
     }
@@ -50,6 +50,6 @@ object Consistency:
   /** Resolves a consistency name from the `.amecos` DSL. */
   def get_consistency(name: String): Consistency =
     name match
-      case "Linearizability" =>  Linearizability
+      case "Linearizability" => Linearizability
       case "SeqCons" => SeqCons
       case _ => throw new IllegalArgumentException("Consistency type not found: " + name)

@@ -1,5 +1,5 @@
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.{CompletableFuture, ForkJoinPool, RejectedExecutionException, RecursiveAction}
+import java.util.concurrent.{CompletableFuture, ForkJoinPool, RecursiveAction, RejectedExecutionException}
 
 /** Searches for legal partial orders on a given history using fork-join parallelism. */
 object OrderSearch:
@@ -40,20 +40,6 @@ object OrderSearch:
     private def valid(order: Order): Boolean =
       history.legal(order) && consistencies.forall(_.check(order))
 
-    private def copyOrder(order: Order): Order =
-      val copy = Order(history)
-      operations.foreach { before =>
-        order.next(before).foreach(after => copy.add(before, after))
-      }
-      copy
-
-    private def withEdge(order: Order, before: Operation, after: Operation): Option[Order] =
-      if order.future(after).contains(before) then None
-      else
-        val candidate = copyOrder(order)
-        candidate.add(before, after)
-        Some(candidate)
-
     private def searchSequential(index: Int, order: Order): Option[Order] =
       if result.isDone then None
       else if valid(order) then Some(order)
@@ -78,8 +64,22 @@ object OrderSearch:
         withEdge(order, right, left)
       ).flatten
 
+    private def copyOrder(order: Order): Order =
+      val copy = Order(history)
+      operations.foreach { before =>
+        order.next(before).foreach(after => copy.add(before, after))
+      }
+      copy
+
+    private def withEdge(order: Order, before: Operation, after: Operation): Option[Order] =
+      if order.future(after).contains(before) then None
+      else
+        val candidate = copyOrder(order)
+        candidate.add(before, after)
+        Some(candidate)
+
     private final class SearchTask(index: Int, order: Order, depth: Int)
-        extends RecursiveAction:
+      extends RecursiveAction:
       override def compute(): Unit =
         try
           if !result.isDone then
