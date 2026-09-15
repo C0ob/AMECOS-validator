@@ -22,7 +22,7 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
 
     ctx.process().asScala.map(visitProcess).foreach( p =>
       processes = processes + p.process
-      opExes = opExes ++ p.opexes
+      opExes = opExes ++ p.opExes
     )
     
     history = History(opExes.toSet)

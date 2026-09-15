@@ -27,7 +27,7 @@ abstract class Operation(val process: Process, val obj: Object, val inputTypes: 
 
   /** Operations ordered after this op-ex by the transitive partial order. */
   def future(order: Order): Set[Operation] = order.future(this)
-  
+
   /** AMECOS validity predicate. */
   def v(order: Order): Boolean
 
@@ -41,18 +41,19 @@ abstract class Operation(val process: Process, val obj: Object, val inputTypes: 
   override def toString: String = name + input.mkString("(", ", ", ")") + "/" + output.mkString + " " + interval.toString()
 
   /** Checks the op-ex's V, S, and L predicates. */
-  def legal(order: Order): Boolean = {
-    println("!--- Verifying " + this)
-    next(order).foreach(o => println("" + this + "->" + o))
+  def legal(order: Order, doPrint: Boolean = false): Boolean = {
+    if doPrint then println("!--- Verifying " + this)
     val resV = v(order)
-    println("V is " + resV)
+    if doPrint then println("V is " + resV)
     val resS = s(order)
-    println("S is " + resS)
+    if doPrint then println("S is " + resS)
     val resL = l(order)
-    println("L is " + resL)
+    if doPrint then println("L is " + resL)
     val res = resV && resS && resL
-    if res then println(Console.GREEN + "Legal" + Console.RESET)
-    else println(Console.RED + "Illegal" + Console.RESET)
+    if doPrint then {
+      if res then println(Console.GREEN + "Legal" + Console.RESET)
+      else println(Console.RED + "Illegal" + Console.RESET)
+    }
     res
   }
 

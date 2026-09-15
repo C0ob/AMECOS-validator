@@ -2,6 +2,9 @@ import scala.collection.mutable
 
 /** A partial order over the operations in a history. */
 class Order(val history: History):
+
+  var numEdges = 0
+
   /** Indexes in this array identify operations in the adjacency sets. */
   private val operations: Vector[Operation] = history.opExes.toVector
   private val opMap: Map[Operation, Int] = operations.zipWithIndex.toMap
@@ -23,10 +26,10 @@ class Order(val history: History):
     opMap.getOrElse(op, throw new IllegalArgumentException("Operation is not part of this order"))
 
   private def reachableIds(
-      start: Int,
-      edges: Array[mutable.Set[Int]],
-      memo: Array[Option[Set[Int]]]
-  ): Set[Int] =
+                            start: Int,
+                            edges: Array[mutable.Set[Int]],
+                            memo: Array[Option[Set[Int]]]
+                          ): Set[Int] =
     memo(start) match
       case Some(reachable) => reachable
       case None =>
@@ -51,6 +54,7 @@ class Order(val history: History):
     val afterId = idOf(after)
     if beforeId == afterId || reachableIds(afterId, adjacency, futureMemo).contains(beforeId) then
       throw new IllegalArgumentException("Ordering must be acyclic")
+    numEdges += 1
 
     if adjacency(beforeId).add(afterId) then
       reverseAdjacency(afterId).add(beforeId)
@@ -75,3 +79,32 @@ class Order(val history: History):
   /** All operations transitively ordered after `op`. */
   def future(op: Operation): Set[Operation] =
     reachableIds(idOf(op), adjacency, futureMemo).iterator.map(operations).toSet
+
+  /** Prints the direct-edge graph in a terminal-friendly format. */
+  def print(): Unit =
+    println(s"+-- Order graph (${operations.size} operations)")
+    if operations.isEmpty then
+      println("|  (empty)")
+    else
+      operations.indices.foreach { id =>
+        val operation = operations(id)
+        println(f"|  [$id%02d] $operation")
+
+        val predecessors = reverseAdjacency(id).toVector.sorted
+        if predecessors.nonEmpty then
+          println(s"|       <- ${predecessors.map(reference).mkString(", ")}")
+
+        val successors = adjacency(id).toVector.sorted
+        if successors.nonEmpty then
+          println(s"|       -> ${successors.map(reference).mkString(", ")}")
+      }
+    println("+-- End order graph")
+
+  private def reference(id: Int): String =
+    f"[$id%02d]"
+
+
+object Order:
+  /** Finds an order that is legal and satisfies every requested consistency. */
+  def findValidOrder(history: History, consistencies: Set[Consistency]): Option[Order] =
+    OrderSearch.findValidOrder(history, consistencies)

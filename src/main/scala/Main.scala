@@ -66,14 +66,30 @@ object Main:
             return
 
         val history = ast.history
-        val order = ast.order
-        
-        val legality = history.legal(order)
+        var order = ast.order
+        val consistencies = ast.consistencies
+
+        if order.numEdges == 0 then {
+          println("!--- No ordering found, generating valid order...")
+          val timeBefore = System.currentTimeMillis()
+          val newOrder = Order.findValidOrder(history, consistencies)
+          val timeAfter = System.currentTimeMillis()
+          println("Took " + (timeAfter - timeBefore) + "ms")
+          if newOrder.isEmpty then {
+            println(Console.RED + "No valid order found" + Console.RESET)
+            return
+          }
+          order = newOrder.get
+        }
+
+        order.print()
+
+        val legality = history.legal(order, true)
         if legality then println(Console.GREEN + "History is legal" + Console.RESET)
         else println(Console.RED + "History is illegal" + Console.RESET)
 
-        if ast.consistensies.nonEmpty then println("!--- Checking consistencies:")
-        ast.consistensies.foreach(c =>
+        if consistencies.nonEmpty then println("!--- Checking consistencies:")
+        consistencies.foreach(c =>
           if c.check(order) then println(Console.GREEN + c.name + " is satisfied" + Console.RESET)
           else println(Console.RED + c.name + " is not satisfied" + Console.RESET)
         )
