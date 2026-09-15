@@ -19,40 +19,36 @@ abstract class Operation(val process: Process, val obj: Object, val inputTypes: 
   var interval: (Int, Int) = (start, end)
   assert(interval._1 <= interval._2)
 
-  var prev: Set[Operation] = Set() // Derived from partial order
-  var next: Set[Operation] = Set()
+  def prev(order: Order): Set[Operation] = order.prev(this)
+  def next(order: Order): Set[Operation ] = order.next(this)
 
   /** Operations ordered before this op-ex by the transitive partial order. */
-  def context(slave: Boolean = false): Set[Operation] =
-    if prev.isEmpty then if slave then Set(this) else Set()
-    else prev ++ prev.flatMap(o => o.context(true))
+  def context(order: Order): Set[Operation] = order.context(this)
 
   /** Operations ordered after this op-ex by the transitive partial order. */
-  def future(slave: Boolean = false): Set[Operation] =
-    if next.isEmpty then if slave then Set(this) else Set()
-    else next ++ next.flatMap(o => o.future(true))
-
+  def future(order: Order): Set[Operation] = order.future(this)
+  
   /** AMECOS validity predicate. */
-  def v(): Boolean
+  def v(order: Order): Boolean
 
   /** AMECOS safety predicate. */
-  def s(): Boolean
+  def s(order: Order): Boolean
 
   /** AMECOS liveness predicate. */
-  def l(): Boolean
+  def l(order: Order): Boolean
 
   /** Formats the operation, result, and execution interval for diagnostics. */
   override def toString: String = name + input.mkString("(", ", ", ")") + "/" + output.mkString + " " + interval.toString()
 
   /** Checks the op-ex's V, S, and L predicates. */
-  def legal(): Boolean = {
+  def legal(order: Order): Boolean = {
     println("!--- Verifying " + this)
-    next.foreach(o => println("" + this + "->" + o))
-    val resV = v()
+    next(order).foreach(o => println("" + this + "->" + o))
+    val resV = v(order)
     println("V is " + resV)
-    val resS = s()
+    val resS = s(order)
     println("S is " + resS)
-    val resL = l()
+    val resL = l(order)
     println("L is " + resL)
     val res = resV && resS && resL
     if res then println(Console.GREEN + "Legal" + Console.RESET)

@@ -22,7 +22,7 @@ object HistoryDiagram:
   private case class Placement(operation: Operation, xStart: Double, xEnd: Double, y: Double, color: String)
 
   /** Produces a standalone SVG with process timelines and interval-shaped op-exes. */
-  def render(history: History): String =
+  def render(history: History, order: Order): String =
     val operations = history.opExes.toList.sortBy(operationKey)
     val processes = operations.map(_.process.name).distinct.sorted
     val colors = processes.zipWithIndex.map { case (name, index) => name -> colorForProcess(index) }.toMap
@@ -73,8 +73,8 @@ object HistoryDiagram:
       body += s"<text x=\"$labelX\" y=\"$timeY\" text-anchor=\"$labelAnchor\" class=\"interval\">(${placement.operation.interval._1}, ${placement.operation.interval._2})</text>"
     }
 
-    history.ordering.toList.sortBy { case (from, _) => operationKey(from) }.foreach { case (from, tos) =>
-      tos.toList.sortBy(operationKey).foreach { to =>
+    operations.foreach { from =>
+      order.next(from).toList.sortBy(operationKey).foreach { to =>
         val source = placementByOperation(from)
         val target = placementByOperation(to)
         val controlY = (source.y + target.y) / 2 + (if source.y < target.y then 28 else -28)

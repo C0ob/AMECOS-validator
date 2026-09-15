@@ -1,47 +1,49 @@
 /** A consistency condition evaluated over an AMECOS history. */
 abstract class Consistency(val name: String):
   /** Tests whether this condition holds for the supplied history. */
-  def check(history: History): Boolean
+  def check(order: Order): Boolean
 
   /** Returns the model's display name. */
   override def toString: String = name
 
 /** AMECOS condition requiring a total order that respects real-time ordering. */
 object Linearizability extends Consistency("Linearizability"):
-  /** Checks total ordering and real-time ordering of the history. */
-  override def check(history: History): Boolean = Consistency.totally_ordered(history) && Consistency.real_time_ordered(history)
+  /** Checks total ordering and real-time ordering. */
+  override def check(order: Order): Boolean = Consistency.totally_ordered(order) && Consistency.real_time_ordered(order, order.history.opExes)
 
 /** AMECOS condition requiring each process's operations to respect real-time order. */
 object SeqCons extends Consistency("SeqCons"):
   /** Checks real-time ordering independently for each process. */
-  override def check(history: History): Boolean = Consistency.process_ordered(history) && Consistency.process_ordered(history)
+  override def check(order: Order): Boolean = Consistency.process_ordered(order) && Consistency.process_ordered(order)
 
 /** Implementations of the ordering predicates used by consistency models. */
 object Consistency:
   /** Checks whether the supplied partial order is a single total chain. */
-  def totally_ordered(history: History): Boolean =
-    if history.opExes.isEmpty then return true
-    var op = history.opExes.filter(_.prev.isEmpty).head
+  def totally_ordered(order: Order): Boolean =
+    val opExes = order.history.opExes
+    if opExes.isEmpty then return true
+    var op = opExes.filter(_.prev(order).isEmpty).head
     var count = 0
-    while op.next.nonEmpty do {
+    while op.next(order).nonEmpty do {
       count += 1
-      if op.next.size > 1 then return false
-      op = op.next.head
+      if op.next(order).size > 1 then return false
+      op = op.next(order).head
     }
-    count == history.opExes.size - 1
+    count == opExes.size - 1
 
   /** Checks real-time ordering for each process projection of the history. */
-  def process_ordered(history: History): Boolean =
+  def process_ordered(order: Order): Boolean =
+    val history = order.history
     val processes = history.opExes.map(_.process)
-    processes.forall(p => real_time_ordered(History(history.opExes.filter(_.process == p), history.ordering)))
+    processes.forall(p => real_time_ordered(order, history.opExes.filter(_.process == p)))
 
 
   /** Checks that non-overlapping op-exes occur in real-time order. */
-  def real_time_ordered(history: History): Boolean =
-    history.opExes.forall { first =>
-      history.opExes.forall { second =>
+  def real_time_ordered(order: Order, processOps: Set[Operation]): Boolean =
+    processOps.forall { first =>
+      processOps.forall { second =>
           first.interval._2 >= second.interval._1 ||
-          first.future().contains(second)
+          first.future(order).contains(second)
       }
     }
 

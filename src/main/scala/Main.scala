@@ -38,11 +38,11 @@ object Main:
       case Some(value) => Right(Options(value, diagram, format))
       case None => Left("Please provide filepath")
 
-  private def writeDiagram(inputPath: String, history: History, format: DiagramFormat): Unit =
+  private def writeDiagram(inputPath: String, history: History, order: Order, format: DiagramFormat): Unit =
     val input = Paths.get(inputPath)
     val base = removeExtension(input)
     val imagePath = Paths.get(base.toString + "." + format.extension)
-    val svg = HistoryDiagram.render(history)
+    val svg = HistoryDiagram.render(history, order)
     HistoryDiagram.renderImage(svg, imagePath, format.extension)
     println(s"Diagram image written to $imagePath")
 
@@ -65,19 +65,21 @@ object Main:
             println(Console.RED + "Error parsing file: " + e.getMessage + Console.RESET)
             return
 
-        val history = History(ast.opexes.toSet, ast.ordering)
-        val legality = history.legal()
+        val history = ast.history
+        val order = ast.order
+        
+        val legality = history.legal(order)
         if legality then println(Console.GREEN + "History is legal" + Console.RESET)
         else println(Console.RED + "History is illegal" + Console.RESET)
 
         if ast.consistensies.nonEmpty then println("!--- Checking consistencies:")
         ast.consistensies.foreach(c =>
-          if c.check(history) then println(Console.GREEN + c.name + " is satisfied" + Console.RESET)
+          if c.check(order) then println(Console.GREEN + c.name + " is satisfied" + Console.RESET)
           else println(Console.RED + c.name + " is not satisfied" + Console.RESET)
         )
 
         if options.diagram then
-          try writeDiagram(options.path, history, options.format)
+          try writeDiagram(options.path, history, order, options.format)
           catch
             case e: Exception =>
               println(Console.RED + "Error generating diagram: " + e.getMessage + Console.RESET)

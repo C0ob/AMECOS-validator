@@ -4,7 +4,7 @@ sealed trait Ast
 /** Constructors for the parser's intermediate representation. */
 object Ast:
   /** Complete parsed application: objects, op-exes, ordering, and checks. */
-  case class App(objs: Map[String, Object], opexes: List[Operation], ordering: Map[Operation, Set[Operation]], consistensies: Set[Consistency]) extends Ast
+  case class App(objs: Map[String, Object], history: History, order: Order, consistensies: Set[Consistency]) extends Ast
 
   /** Parsed object initialization. */
   case class InitObj(name: String, obj: Object) extends Ast
@@ -19,7 +19,7 @@ object Ast:
   case class Args(args: List[Int]) extends Ast
 
   /** Parsed partial-order edge between two op-exes. */
-  case class Order(first: Operation, second: Operation) extends Ast
+  case class OrderEdge(first: Operation, second: Operation) extends Ast
   
   /** Parsed inclusive invocation/response interval. */
   case class Interval(start: Int, end: Int) extends Ast

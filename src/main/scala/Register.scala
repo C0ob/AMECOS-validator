@@ -14,17 +14,17 @@ class Read(process: Process, obj: Object, in: List[Int], out: Option[Int], start
   override val output: Option[Int] = out
 
   /** A read is valid once a write to the register precedes it. */
-  def v(): Boolean = context().exists(o => o.name == "Write" && o.obj == this.obj)
+  def v(order: Order): Boolean = context(order).exists(o => o.name == "Write" && o.obj == this.obj)
 
   /** A read is safe when its returned value was the latest preceding write. */
-  def s(): Boolean = context().exists(o =>
+  def s(order: Order): Boolean = context(order).exists(o =>
     o.name == "Write" &&
       o.input(0) == output.get &&
       o.obj == this.obj &&
-      !context().intersect(o.future()).exists(p => p.name == "Write" && p.input(0) == output.get && p.obj == this.obj))
+      !context(order).intersect(o.future(order)).exists(p => p.name == "Write" && p.input(0) == output.get && p.obj == this.obj))
 
   /** Register operations are assumed to complete. */
-  def l(): Boolean = true
+  def l(order: Order): Boolean = true
 
 /** Register write operation. */
 class Write(process: Process, obj: Object, in: List[Int], out: Option[Int], start: Int, end: Int) extends Operation(process, obj, Array(DataType.Int), None, start, end, "Write"):
@@ -33,10 +33,10 @@ class Write(process: Process, obj: Object, in: List[Int], out: Option[Int], star
   override val input = Array(in.head)
 
   /** A write is always valid. */
-  def v(): Boolean = true
+  def v(order: Order): Boolean = true
 
   /** A write is always safe. */
-  def s(): Boolean = true
+  def s(order: Order): Boolean = true
 
   /** Register operations are assumed to complete. */
-  def l(): Boolean = true
+  def l(order: Order): Boolean = true

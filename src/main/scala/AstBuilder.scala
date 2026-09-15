@@ -8,8 +8,9 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
 
   private var objMap: Map[String, Object] = Map()
   private var processes: Set[Process] = Set()
-  private var opexes: List[Operation] = List()
-  private var order: Map[Operation, Set[Operation]] = Map()
+  var opExes: List[Operation] = List()
+  var history: History = null // could have been done more cleanly, i know :p
+  var order: Order = null
   private var consistencies: Set[Consistency] = Set()
 
   /** Visits the complete `.amecos` application. */
@@ -21,15 +22,17 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
 
     ctx.process().asScala.map(visitProcess).foreach( p =>
       processes = processes + p.process
-      opexes = opexes ++ p.opexes
+      opExes = opExes ++ p.opexes
     )
-    println("[parser] parsed " + opexes.length + " op-exes")
+    
+    history = History(opExes.toSet)
+    println("[parser] parsed " + opExes.size + " op-exes")
+    order = Order(history)
 
     ctx.order().asScala.map(visitOrder).foreach(o =>
-      if order.contains(o.first) then order = order.updated(o.first, order(o.first) + o.second)
-      else order = order + Tuple2(o.first, Set(o.second))
+      order.add(o.first, o.second)
     )
-    App(objMap, opexes, order, consistencies)
+    App(objMap, history, order, consistencies)
 
   /** Resolves consistency names from a `check` clause. */
   override def visitConsistencies(ctx: AmecosParser.ConsistenciesContext): Consistencies =
@@ -75,14 +78,14 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
   override def visitOpexRef(ctx: AmecosParser.OpexRefContext): OpexRef =
     val process = Process(ctx.PROC().getText)
     try 
-      OpexRef(opexes.filter(_.process == process)(Integer.parseInt(ctx.NUM().getText)))
+      OpexRef(opExes.filter(_.process == process)(Integer.parseInt(ctx.NUM().getText)))
     catch 
       case e: IndexOutOfBoundsException => throw new IllegalArgumentException("Invalid opex index: " + ctx.getText)
 
 
   /** Converts an ordering edge into an AST node. */
-  override def visitOrder(ctx: AmecosParser.OrderContext): Order = {
+  override def visitOrder(ctx: AmecosParser.OrderContext): OrderEdge = {
     val ops = ctx.opexRef().asScala.map(o => visitOpexRef(o).operation).toList
-    Order(ops.head, ops(1))
+    OrderEdge(ops.head, ops(1))
 
   }
