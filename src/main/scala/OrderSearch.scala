@@ -3,6 +3,7 @@ import java.util.concurrent.{CompletableFuture, ForkJoinPool, RecursiveAction, R
 
 /** Searches for legal partial orders on a given history using fork-join parallelism. */
 object OrderSearch:
+  /** Searches for an order satisfying legality and all requested consistency models. */
   def findValidOrder(history: History, consistencies: Set[Consistency]): Option[Order] =
     new SearchRuntime(history, consistencies).run()
 

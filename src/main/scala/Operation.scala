@@ -1,4 +1,5 @@
 /** Values accepted as operation arguments and results. (only support Int for now) */
+/** Runtime representation of values accepted by operation arguments/results. */
 type dataType = Int
 
 /** An operation execution (op-ex) in an AMECOS history.
@@ -8,14 +9,19 @@ type dataType = Int
 abstract class Operation(val process: Process, val obj: Object, val inputTypes: Array[DataType],
                          val outputType: Option[DataType], start: Int, end: Int, val name: String = "") {
 
+  /** Concrete argument values supplied to this operation. */
   val input: Array[dataType] = Array()
+  /** Concrete result returned by this operation, when any. */
   val output: Option[dataType] = None
 
+  /** Invocation and response timestamps, inclusive. */
   var interval: (Int, Int) = (start, end)
   assert(interval._1 <= interval._2)
 
+  /** Direct predecessors of this operation in an order. */
   def prev(order: Order): Set[Operation] = order.prev(this)
 
+  /** Direct successors of this operation in an order. */
   def next(order: Order): Set[Operation] = order.next(this)
 
   /** Operations ordered before this op-ex by the transitive partial order. */

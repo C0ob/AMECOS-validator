@@ -8,6 +8,7 @@ import java.nio.file.Paths
 
 /** Parses an AMECOS file into the application AST. */
 object HistoryParser:
+  /** Expands imports and parses one AMECOS source file into an AST application. */
   def parseFile(path: String): App =
     val sourcePath = Paths.get(path).toAbsolutePath.normalize()
     val input = CharStreams.fromString(ImportResolver.expand(sourcePath), sourcePath.toString)

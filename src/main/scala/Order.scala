@@ -16,6 +16,7 @@ class Order(val history: History):
     Array.fill(operations.length)(None)
   private val contextMemo: Array[Option[Set[Int]]] =
     Array.fill(operations.length)(None)
+  /** Number of direct edges added to this order. */
   var numEdges = 0
 
   /** Adds a direct ordering edge: `before` must precede `after`. */

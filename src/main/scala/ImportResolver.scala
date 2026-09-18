@@ -6,6 +6,7 @@ object ImportResolver:
   private val importPattern = """^\s*import\s+"([^"]+)"\s*$""".r
   private val importPrefix = """^\s*import\b.*$""".r
 
+  /** Recursively expands imports in a source file, resolving paths relative to it. */
   def expand(path: Path): String = expand(path.toAbsolutePath.normalize(), Vector.empty)
 
   private def expand(path: Path, stack: Vector[Path]): String =

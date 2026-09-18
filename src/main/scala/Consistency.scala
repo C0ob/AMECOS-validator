@@ -19,6 +19,7 @@ object SeqCons extends Consistency("SeqCons"):
 /** Implementations of the ordering predicates used by consistency models. */
 object Consistency:
   /** Checks whether the supplied partial order is a single total chain. */
+  /** Returns whether every operation belongs to one total chain. */
   def totally_ordered(order: Order): Boolean =
     val opExes = order.history.opExes
     if opExes.isEmpty then return true
@@ -32,6 +33,7 @@ object Consistency:
     count == opExes.size - 1
 
   /** Checks real-time ordering for each process projection of the history. */
+  /** Returns whether each process projection respects real-time order. */
   def process_ordered(order: Order): Boolean =
     val history = order.history
     val processes = history.opExes.map(_.process)
@@ -39,6 +41,7 @@ object Consistency:
 
 
   /** Checks that non-overlapping op-exes occur in real-time order. */
+  /** Returns whether non-overlapping operations occur in real-time order. */
   def real_time_ordered(order: Order, processOps: Set[Operation]): Boolean =
     processOps.forall { first =>
       processOps.forall { second =>

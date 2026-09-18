@@ -9,6 +9,7 @@ Antlr4 / antlr4GenVisitor := true
 libraryDependencies += "org.antlr" % "antlr4-runtime" % "4.8"
 libraryDependencies += "org.apache.xmlgraphics" % "batik-all" % "1.17"
 libraryDependencies += "org.apache.xmlgraphics" % "fop" % "2.9"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test
 
 lazy val root = (project in file("."))
   .settings(
