@@ -1,0 +1,12 @@
+type Dictionary:
+    operation Put:
+        string, string -> void
+
+    operation Get:
+        string -> string
+        V = exists in context where this same object as that:
+                name == "Put";
+        S = exists in context where this same object as that:
+                name == "Put" and input[0] == this.input[0] and this.output == input[1]
+                and not exists in that.future intersect this.context:
+                    name == "Put" and input[0] == this.input[0] and this.output != input[1];

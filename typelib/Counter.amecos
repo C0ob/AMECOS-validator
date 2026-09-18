@@ -1,0 +1,4 @@
+type Counter:
+    operation Inc:
+        void -> int
+        S = output == count(context) + 1;
