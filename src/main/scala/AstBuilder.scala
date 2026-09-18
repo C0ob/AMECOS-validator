@@ -11,6 +11,7 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
   var opExes: List[Operation] = List()
   var history: History = null // could have been done more cleanly, I know :p
   var order: Order = null
+  private var factories = Map[String, CustomObjectFactory]()
   private var objMap: Map[String, Object] = Map()
   private var processes: Set[Process] = Set()
   private var consistencies: Set[Consistency] = Set()
@@ -41,7 +42,9 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
   override def visitTypedef(ctx: AmecosParser.TypedefContext): TypeDef =
     val typeName = ctx.NAME().getText
     val opFactories = ctx.opdef().asScala.map(o => visitOpdef(o).factory).toSet
-    TypeDef(new CustomObjectFactory(typeName, opFactories))
+    val factory = new CustomObjectFactory(typeName, opFactories)
+    factories = factories + (typeName -> factory)
+    TypeDef(factory)
 
   /** Creates new operation factories from a `typedef` type declaration. */
   override def visitOpdef(ctx: AmecosParser.OpdefContext): OpDef =
@@ -294,7 +297,7 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
   override def visitInit(ctx: AmecosParser.InitContext): InitObj =
     val name = ctx.OBJ().getText
     val object_type = ctx.NAME().getText
-    val obj = Object.new_object(object_type, name)
+    val obj = Object.new_object(object_type, name, factories)
     InitObj(name, obj)
 
   /** Creates a process and all of its op-exes. */
