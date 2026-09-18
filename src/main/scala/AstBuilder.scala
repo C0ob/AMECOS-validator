@@ -203,10 +203,15 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
       return Value(ValTypes.int, target.output.getOrElse(throw new Exception("No output for " + target.name)))
     }
     if ctx.getText == "name" then return Value(ValTypes.string, stringVal = operation.name)
-    if ctx.STRING() != null then return Value(ValTypes.string, stringVal = ctx.getText.stripPrefix("\"").stripSuffix("\""))
+    if ctx.STRING() != null then return Value(ValTypes.string, stringVal = unquote(ctx.getText))
     if ctx.THIS() != null then return Value(ValTypes.operation, opVal = ths)
     if ctx.THAT() != null then return Value(ValTypes.operation, opVal = operation)
     Value(ValTypes.int, operation.output.getOrElse(throw new Exception("No output for " + operation.name)))
+
+  private def unquote(value: String): String =
+    value.substring(1, value.length - 1)
+      .replace("\\\\", "\\")
+      .replace("\\\"", "\"")
 
   override def visitMathOp(ctx: AmecosParser.MathOpContext): MathOp =
     ctx.getText match {

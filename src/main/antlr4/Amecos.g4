@@ -17,7 +17,7 @@ OBJ: [A-Z_]+ ;
 PROC: [a-z] [a-z0-9_]*;
 NUM: [0-9]+ ;
 NAME : [a-zA-Z] [a-zA-Z0-9_]* ;
-STRING: ["] [a-zA-Z0-9_]* ["];
+STRING: '"' ( '\\' . | ~["\\] )* '"';
 
 
 
@@ -63,7 +63,7 @@ valueExpr: valueAtom
          
 index: setExpr '['NUM']';
 mathOp: '+' | '-' | '*' | '/';
-valueAtom: NUM | 'output' | 'name' | THIS | THAT | STRING | operationField;
+valueAtom: NUM | '-' NUM | 'output' | 'name' | THIS | THAT | STRING | operationField;
 operationField: (THIS | THAT) '.' ('output' | 'name');
 comparator: '==' | '!=' | '<' | '<=' | '>' | '>=' | 'same object as' | 'same input as' | 'same output as';
 setAtom: 'context' | 'future' | 'all' | 'input';
