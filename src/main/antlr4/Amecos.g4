@@ -29,8 +29,6 @@ inputtype: iotype (',' iotype)*;
 outputtype: iotype;
 iotype: 'int' | 'void';
 
-
-
 consistencies: 'check' NAME (',' NAME)*;
 init: 'new' (OBJ NAME | NAME OBJ);
 args: NUM (',' NUM)*;
@@ -51,7 +49,7 @@ formulaAtom: TRUE
            | quantifier
            | valueExpr comparator valueExpr;
 
-quantifier: (EXISTS | FORALL) setExpr 'where' formula;
+quantifier: (EXISTS | FORALL) 'in' setExpr ':' formula;
 
 /** Values expose operation fields, for example `output` or `name`. */
 valueExpr: valueAtom

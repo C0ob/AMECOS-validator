@@ -84,27 +84,28 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
       case other => throw new IllegalArgumentException(s"Unknown predicate type: $other") // realistically never happens
     }
 
-    Predicate(visitFormula(ctx.formula()).f, predType)
+    Predicate((order, operation) => visitFormula(ctx.formula(), order, operation).f(order, operation), predType)
 
-  override def visitFormula(ctx: AmecosParser.FormulaContext): Formula =
-    visitDisjunction(ctx.disjunction())
+  def visitFormula(ctx: AmecosParser.FormulaContext, order: Order, operation: Operation): Formula =
+    visitDisjunction(ctx.disjunction(), order, operation)
 
-  override def visitDisjunction(ctx: AmecosParser.DisjunctionContext): Formula =
-    val formulas = ctx.conjunction().asScala.map(c => visitConjunction(c).f).toList
-    Formula((order, operation) => formulas.exists(f => f(order, operation)))
+  def visitDisjunction(ctx: AmecosParser.DisjunctionContext, order: Order, operation: Operation): Formula =
+    val formulas = ctx.conjunction().asScala.map(c => visitConjunction(c, order, operation).f).toList
+    Formula((_, _) => formulas.exists(f => f(order, operation)))
 
-  override def visitConjunction(ctx: AmecosParser.ConjunctionContext): Formula =
-    val formulas = ctx.unary().asScala.map(u => visitUnary(u).f).toList
-    Formula((order, operation) => formulas.forall(f => f(order, operation)))
+  def visitConjunction(ctx: AmecosParser.ConjunctionContext, order: Order, operation: Operation): Formula =
+    val formulas = ctx.unary().asScala.map(u => visitUnary(u, order, operation).f).toList
+    Formula((_, _) => formulas.forall(f => f(order, operation)))
 
-  override def visitUnary(ctx: AmecosParser.UnaryContext): Formula =
-    if ctx.NOT() != null then Formula((order, operation) => !visitUnary(ctx.unary()).f(order, operation))
-    else Formula(visitFormulaAtom(ctx.formulaAtom()).f)
+  def visitUnary(ctx: AmecosParser.UnaryContext, order: Order, operation: Operation): Formula =
+    if ctx.NOT() != null then Formula((_, _) => !visitUnary(ctx.unary(), order, operation).f(order, operation))
+    else Formula((_, _) => visitFormulaAtom(ctx.formulaAtom(), order, operation).f(order, operation))
 
-  override def visitFormulaAtom(ctx: AmecosParser.FormulaAtomContext): Formula =
+  def visitFormulaAtom(ctx: AmecosParser.FormulaAtomContext, order: Order, operation: Operation): Formula =
     if ctx.TRUE() != null then return Formula((_, _) => true)
     if ctx.FALSE() != null then return Formula((_, _) => false)
-    if ctx.formula() != null then return visitFormula(ctx.formula())
+    if ctx.formula() != null then return visitFormula(ctx.formula(), order, operation)
+    if ctx.quantifier() != null then return Formula((order, operation) => visitQuantifier(ctx.quantifier(), order, operation).f(order, operation))
     val comp: (dataType, dataType) => Boolean = visitComparator(ctx.comparator()).comparator match {
       case ComparatorType.eq => (a, b) => a == b
       case ComparatorType.neq => (a, b) => a != b
@@ -114,12 +115,17 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
       case ComparatorType.gt => (a, b) => a > b
     }
 
-    Formula((order: Order, operation: Operation) =>
-      val a = visitValueExpr(ctx.valueExpr(0), order, operation)
-      val b = visitValueExpr(ctx.valueExpr(1), order, operation)
-      if a.valType != ValTypes.int || b.valType != ValTypes.int then throw IllegalArgumentException(s"Cannot invoke comparator on ${a.valType} and ${b.valType}")
-      comp(a.intVal, b.intVal))
+    val a = visitValueExpr(ctx.valueExpr(0), order, operation)
+    val b = visitValueExpr(ctx.valueExpr(1), order, operation)
+    if a.valType != ValTypes.int || b.valType != ValTypes.int then throw IllegalArgumentException(s"Cannot invoke comparator on ${a.valType} and ${b.valType}")
+    Formula((_, _) => comp(a.intVal, b.intVal))
 
+
+  def visitQuantifier(ctx: AmecosParser.QuantifierContext, order: Order, operation: Operation): Formula =
+    val set = visitSetExpr(ctx.setExpr(), order, operation)
+    if set.valType != ValTypes.operation then throw new IllegalArgumentException("Cannot quantify over non-operation set: " + set.valType)
+    if ctx.FORALL() != null then Formula((_, _) => set.opVals.forall(o => visitFormula(ctx.formula(), order, o).f(order, o)))
+      else Formula((_, _) => set.opVals.exists(o => visitFormula(ctx.formula(), order, o).f(order, o)))
 
   override def visitComparator(ctx: AmecosParser.ComparatorContext): Comparator =
     ctx.getText match {
@@ -172,6 +178,7 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
       case "context" => SetVal(ValTypes.operation, Array(), order.context(operation))
       case "future" => SetVal(ValTypes.operation, Array(), order.future(operation))
       case "input" => SetVal(ValTypes.int, operation.input)
+      case "all" => SetVal(ValTypes.operation, Array(), order.history.opExes)
       case other => throw new IllegalArgumentException(s"Unknown set expression: $other")
     }
 
