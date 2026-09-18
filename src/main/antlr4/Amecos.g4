@@ -8,6 +8,8 @@ COUNT: 'count';
 LATEST: 'latest';
 EXISTS: 'exists';
 FORALL: 'forall';
+THIS: 'this';
+THAT: 'that';
 
 WS : [ \t\r\n]+ -> skip;
 COMMENT: '//' ~[\r\n]* -> skip;
@@ -15,6 +17,7 @@ OBJ: [A-Z_]+ ;
 PROC: [a-z] [a-z0-9_]*;
 NUM: [0-9]+ ;
 NAME : [a-zA-Z] [a-zA-Z0-9_]* ;
+STRING: ["] [a-zA-Z0-9_]* ["];
 
 
 
@@ -49,14 +52,19 @@ formulaAtom: TRUE
            | quantifier
            | valueExpr comparator valueExpr;
 
-quantifier: (EXISTS | FORALL) 'in' setExpr ':' formula;
+quantifier: (EXISTS | FORALL) 'in' setExpr  where? ':' formula;
+where: 'where' formula;
 
 /** Values expose operation fields, for example `output` or `name`. */
 valueExpr: valueAtom
          | COUNT '(' setExpr ')'
-         | LATEST '(' setExpr ')'
+         | index
          | valueExpr mathOp valueExpr;
+         
+index: setExpr '['NUM']';
 mathOp: '+' | '-' | '*' | '/';
-valueAtom: NUM | 'output';
-comparator: '==' | '!=' | '<' | '<=' | '>' | '>=';
-setExpr: 'context' | 'future' | 'all' | 'input';
+valueAtom: NUM | 'output' | 'name' | THIS | THAT | STRING | operationField;
+operationField: (THIS | THAT) '.' ('output' | 'name');
+comparator: '==' | '!=' | '<' | '<=' | '>' | '>=' | 'same object as' | 'same input as' | 'same output as';
+setAtom: 'context' | 'future' | 'all' | 'input';
+setExpr: setAtom | THIS '.' setAtom;

@@ -7,7 +7,7 @@ enum PredType:
   
 enum ComparatorType:
   /** Equality comparator. */
-  case eq, neq, lt, leq, gt, geq
+  case eq, neq, lt, leq, gt, geq, sameObj, sameInput, sameOutput
   
 enum MathOps:
   /** Addition operator. */
@@ -15,7 +15,7 @@ enum MathOps:
   
 enum ValTypes:
   /** Integer value. */
-  case int, operation
+  case int, string, operation
   
 /** Constructors for the parser's intermediate representation. */
 object Ast:
@@ -43,7 +43,7 @@ object Ast:
   case class Formula(f: F) extends Ast
   
   /** Parsed scalar or operation value. */
-  case class Value(valType: ValTypes, intVal: Int = 0, opVal: Operation = null) extends Ast
+  case class Value(valType: ValTypes, intVal: Int = 0, stringVal: String = "", opVal: Operation = null) extends Ast
   
   /** Parsed comparison operator. */
   case class Comparator(comparator: ComparatorType) extends Ast
