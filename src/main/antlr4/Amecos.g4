@@ -13,10 +13,10 @@ THAT: 'that';
 
 WS : [ \t\r\n]+ -> skip;
 COMMENT: '//' ~[\r\n]* -> skip;
-OBJ: [A-Z_]+ ;
+OBJ: [A-Z] [A-Z0-9_]*;
 PROC: [a-z] [a-z0-9_]*;
 NUM: [0-9]+ ;
-NAME : [a-zA-Z] [a-zA-Z0-9_]* ;
+NAME : [A-Z] [a-zA-Z0-9_]* ;
 STRING: '"' ( '\\' . | ~["\\] )* '"';
 
 
@@ -30,14 +30,15 @@ predicate: ('V' | 'S' | 'L') '=' formula ';';
 signature:  inputtype '->' outputtype;
 inputtype: iotype (',' iotype)*;
 outputtype: iotype;
-iotype: 'int' | 'void';
+iotype: 'int' | 'string' | 'void';
 
 consistencies: 'check' NAME (',' NAME)*;
 init: 'new' (OBJ NAME | NAME OBJ);
-args: NUM (',' NUM)*;
+args: argValue (',' argValue)*;
+argValue: NUM | STRING;
 interval: '(' NUM ',' NUM ')';
 process: 'process' PROC ':'? opex*;
-opex: OBJ '.' NAME '(' args? ')' ('/' NUM)? interval?;
+opex: OBJ '.' NAME '(' args? ')' ('/' argValue)? interval?;
 opexRef: PROC '.' NUM;
 order: opexRef '->' opexRef;
 

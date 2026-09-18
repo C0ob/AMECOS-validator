@@ -10,11 +10,11 @@ class CustomOperationFactory(inputTypes: Array[DataType],
                              val lPred: F):
 
   /** Creates an operation instance with the declared signature and predicates. */
-  def create(process: Process, obj: Object, args: List[Int], ret: Option[Int], start: Int, end: Int): Operation =
+  def create(process: Process, obj: Object, args: List[dataType], ret: Option[dataType], start: Int, end: Int): Operation =
     new CustomOperation(process, obj, args, ret, start, end)
 
   /** The custom operation defined by the user in the DSL. */
-  private class CustomOperation(process: Process, obj: Object, args: List[Int], ret: Option[Int], start: Int, end: Int)
+  private class CustomOperation(process: Process, obj: Object, args: List[dataType], ret: Option[dataType], start: Int, end: Int)
       extends Operation(process, obj, inputTypes, outputType, start, end, name):
 
     override val input: Array[dataType] = args.toArray
@@ -28,4 +28,3 @@ class CustomOperationFactory(inputTypes: Array[DataType],
 
     /** AMECOS liveness predicate. */
     override def l(order: Order): Boolean = lPred(order, this)
-

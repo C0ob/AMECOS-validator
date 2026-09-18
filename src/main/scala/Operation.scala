@@ -1,6 +1,6 @@
 /** Values accepted as operation arguments and results. (only support Int for now) */
 /** Runtime representation of values accepted by operation arguments/results. */
-type dataType = Int
+type dataType = Int | String
 
 /** An operation execution (op-ex) in an AMECOS history.
  *
@@ -64,4 +64,4 @@ abstract class Operation(val process: Process, val obj: Object, val inputTypes: 
 /** Runtime types declared by an operation's sequential specification. */
 enum DataType:
   /** Integer data. */
-  case Int
+  case Int, String

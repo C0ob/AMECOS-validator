@@ -69,12 +69,14 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
   override def visitInputtype(ctx: AmecosParser.InputtypeContext): InType =
     if ctx.getText == "void" then return InType(Array())
     if ctx.getText.contains("void") then throw IllegalArgumentException(s"void cannot be part of composite signature: " + ctx.getText)
-    val length = ctx.getText.count(c => c != ' ' || c != ',') / 3 // BREAKS IF MORE TYPES ARE ADDED!
-    InType(Array.fill(length)(DataType.Int))
+    InType(ctx.iotype().asScala.map(t => if t.getText == "string" then DataType.String else DataType.Int).toArray)
 
 
   override def visitOutputtype(ctx: AmecosParser.OutputtypeContext): OutType =
-    if ctx.getText == "int" then OutType(Some(DataType.Int)) else OutType(None)
+    ctx.getText match
+      case "int" => OutType(Some(DataType.Int))
+      case "string" => OutType(Some(DataType.String))
+      case _ => OutType(None)
 
   override def visitPredicate(ctx: AmecosParser.PredicateContext): Predicate =
     val predType = ctx.getStart.getText match {
@@ -129,7 +131,7 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
       return Formula((_, _) => comp(a.stringVal, b.stringVal))
     }
     if a.valType != ValTypes.int || b.valType != ValTypes.int then throw IllegalArgumentException(s"Cannot invoke comparator on ${a.valType} and ${b.valType}")
-    val comp: (dataType, dataType) => Boolean = visitComparator(ctx.comparator()).comparator match {
+    val comp: (Int, Int) => Boolean = visitComparator(ctx.comparator()).comparator match {
       case ComparatorType.eq => (a, b) => a == b
       case ComparatorType.neq => (a, b) => a != b
       case ComparatorType.leq => (a, b) => a <= b
@@ -171,10 +173,10 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
     if ctx.valueAtom() != null then return visitValueAtom(ctx.valueAtom(), order, operation, ths)
     if ctx.mathOp() != null then {
       val op = visitMathOp(ctx.mathOp()).op match {
-        case MathOps.plus => (a: dataType, b: dataType) => a + b
-        case MathOps.min => (a: dataType, b: dataType) => a - b
-        case MathOps.times => (a: dataType, b: dataType) => a * b
-        case MathOps.div => (a: dataType, b: dataType) => a / b
+        case MathOps.plus => (a: Int, b: Int) => a + b
+        case MathOps.min => (a: Int, b: Int) => a - b
+        case MathOps.times => (a: Int, b: Int) => a * b
+        case MathOps.div => (a: Int, b: Int) => a / b
       }
       val a = visitValueExpr(ctx.valueExpr(0), order, operation, ths)
       val b = visitValueExpr(ctx.valueExpr(1), order, operation, ths)
@@ -184,15 +186,17 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
     if ctx.index() != null then return visitIndex(ctx.index(), order, operation, ths)
     val set = visitSetExpr(ctx.setExpr(), order, operation, ths)
     if set.valType != ValTypes.operation then throw IllegalArgumentException(s"Cannot get latest of set type ${set.valType}")
-    Value(ValTypes.int, Math.max(set.intVals.length, set.opVals.size))
+    Value(ValTypes.int, Math.max(set.values.length, set.opVals.size))
   }
 
   def visitIndex(ctx: AmecosParser.IndexContext, order: Order, operation: Operation, tht: Operation ): Value =
     val set = visitSetExpr(ctx.setExpr(), order, operation, tht)
     if set.valType != ValTypes.int then throw IllegalArgumentException(s"Cannot index on type ${set.valType}.")
     val idx = Integer.parseInt(ctx.NUM().getText)
-    if idx >= set.intVals.length then throw IllegalArgumentException(s"Index out of bounds at ${ctx.getText}")
-    Value(ValTypes.int, set.intVals(idx))
+    if idx >= set.values.length then throw IllegalArgumentException(s"Index out of bounds at ${ctx.getText}")
+    set.values(idx) match
+      case value: Int => Value(ValTypes.int, value)
+      case value: String => Value(ValTypes.string, stringVal = value)
 
   /** Evaluates a literal or operation-output value. */
   def visitValueAtom(ctx: AmecosParser.ValueAtomContext, order: Order, operation: Operation, ths: Operation): Value =
@@ -200,13 +204,17 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
     if ctx.operationField() != null then {
       val target = if ctx.getText.startsWith("this") then ths else operation
       if ctx.getText.endsWith("name") then return Value(ValTypes.string, stringVal = target.name)
-      return Value(ValTypes.int, target.output.getOrElse(throw new Exception("No output for " + target.name)))
+      return valueOf(target.output.getOrElse(throw new Exception("No output for " + target.name)))
     }
     if ctx.getText == "name" then return Value(ValTypes.string, stringVal = operation.name)
     if ctx.STRING() != null then return Value(ValTypes.string, stringVal = unquote(ctx.getText))
     if ctx.THIS() != null then return Value(ValTypes.operation, opVal = ths)
     if ctx.THAT() != null then return Value(ValTypes.operation, opVal = operation)
-    Value(ValTypes.int, operation.output.getOrElse(throw new Exception("No output for " + operation.name)))
+    valueOf(operation.output.getOrElse(throw new Exception("No output for " + operation.name)))
+
+  private def valueOf(value: dataType): Value = value match
+    case int: Int => Value(ValTypes.int, int)
+    case string: String => Value(ValTypes.string, stringVal = string)
 
   private def unquote(value: String): String =
     value.substring(1, value.length - 1)
@@ -259,17 +267,23 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
     val op_name = ctx.NAME().getText
     val args = visitArgs(ctx.args()).args
     val interval = if ctx.interval() == null then Interval(0, 0) else visitInterval(ctx.interval())
-    val ret = if ctx.NUM() == null then None else Some(Integer.parseInt(ctx.NUM().getText))
+    val ret = Option(ctx.argValue()).map(v =>
+      if v.NUM() != null then Integer.parseInt(v.getText)
+      else unquote(v.getText)
+    )
     val obj = objMap.getOrElse(obj_name, throw new Exception("Object " + obj_name + " not found: " + ctx.getText))
     try
       Opex(obj.new_op(process, op_name, args, ret, interval.start, interval.end))
     catch
       case e: Exception => throw new IllegalArgumentException(e.getMessage + ": " + ctx.getText)
 
-  /** Converts optional numeric arguments to the AST representation. */
+  /** Converts optional operation arguments to the AST representation. */
   override def visitArgs(ctx: AmecosParser.ArgsContext): Args =
     if ctx == null then Args(List())
-    else Args(ctx.NUM().asScala.toList.map(n => Integer.parseInt(n.toString)))
+    else Args(ctx.argValue().asScala.toList.map(v =>
+      if v.NUM() != null then Integer.parseInt(v.getText)
+      else unquote(v.getText)
+    ))
 
   /** Converts an op-ex interval to an AST interval. */
   override def visitInterval(ctx: AmecosParser.IntervalContext): Interval =

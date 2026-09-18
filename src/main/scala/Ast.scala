@@ -51,7 +51,7 @@ object Ast:
   /** Parsed arithmetic operator. */
   case class MathOp(op: MathOps) extends Ast
   
-  case class SetVal(valType: ValTypes, intVals: Array[Int] = Array(), opVals: Set[Operation] = Set()) extends Ast
+  case class SetVal(valType: ValTypes, values: Array[dataType] = Array(), opVals: Set[Operation] = Set()) extends Ast
 
   /** Parsed object initialization. */
   case class InitObj(name: String, obj: Object) extends Ast
@@ -63,7 +63,7 @@ object Ast:
   case class Opex(operation: Operation) extends Ast
 
   /** Parsed integer operation arguments. */
-  case class Args(args: List[Int]) extends Ast
+  case class Args(args: List[dataType]) extends Ast
 
   /** Parsed partial-order edge between two op-exes. */
   case class OrderEdge(first: Operation, second: Operation) extends Ast
