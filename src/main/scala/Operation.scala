@@ -1,18 +1,18 @@
 /** Values accepted as operation arguments and results. (only support Int for now) */
 /** Runtime representation of values accepted by operation arguments/results. */
-type dataType = Int | String
+type DataType = Int | String | Unit
 
 /** An operation execution (op-ex) in an AMECOS history.
  *
  * Its V/S/L predicates describe validity, safety, and liveness respectively.
  */
-abstract class Operation(val process: Process, val obj: Object, val inputTypes: Array[DataType],
-                         val outputType: Option[DataType], start: Int, end: Int, val name: String = "") {
+abstract class Operation(val process: Process, val obj: Object, val inputTypes: Array[DataTypes],
+                         val outputType: Option[DataTypes], start: Int, end: Int, val name: String = "") {
 
   /** Concrete argument values supplied to this operation. */
-  val input: Array[dataType] = Array()
+  val input: Array[DataType] = Array()
   /** Concrete result returned by this operation, when any. */
-  val output: Option[dataType] = None
+  val output: Option[DataType] = None
 
   /** Invocation and response timestamps, inclusive. */
   var interval: (Int, Int) = (start, end)
@@ -62,6 +62,6 @@ abstract class Operation(val process: Process, val obj: Object, val inputTypes: 
 }
 
 /** Runtime types declared by an operation's sequential specification. */
-enum DataType:
+enum DataTypes:
   /** Integer data. */
-  case Int, String
+  case Int, String, Unit

@@ -15,7 +15,7 @@ enum MathOps:
   
 enum ValTypes:
   /** Integer value. */
-  case int, string, operation
+  case int, string, operation, void
   
 /** Constructors for the parser's intermediate representation. */
 object Ast:
@@ -29,12 +29,12 @@ object Ast:
   case class OpDef(factory: CustomOperationFactory) extends Ast
   
   /** Parsed operation signature. */
-  case class OpSignature(inputTypes: Array[DataType], outputType: Option[DataType]) extends Ast
+  case class OpSignature(inputTypes: Array[DataTypes], outputType: Option[DataTypes]) extends Ast
   
   /** Parsed input signature types. */
-  case class InType(inputTypes: Array[DataType]) extends Ast
+  case class InType(inputTypes: Array[DataTypes]) extends Ast
   /** Parsed output signature type. */
-  case class OutType(outputType: Option[DataType]) extends Ast
+  case class OutType(outputType: Option[DataTypes]) extends Ast
   
   /** Parsed v, s or l predicate. */
   case class Predicate(f: F, predType: PredType) extends Ast
@@ -51,7 +51,7 @@ object Ast:
   /** Parsed arithmetic operator. */
   case class MathOp(op: MathOps) extends Ast
   
-  case class SetVal(valType: ValTypes, values: Array[dataType] = Array(), opVals: Set[Operation] = Set()) extends Ast
+  case class SetVal(valType: ValTypes, values: Array[DataType] = Array(), opVals: Set[Operation] = Set()) extends Ast
 
   /** Parsed object initialization. */
   case class InitObj(name: String, obj: Object) extends Ast
@@ -63,7 +63,7 @@ object Ast:
   case class Opex(operation: Operation) extends Ast
 
   /** Parsed integer operation arguments. */
-  case class Args(args: List[dataType]) extends Ast
+  case class Args(args: List[DataType]) extends Ast
 
   /** Parsed partial-order edge between two op-exes. */
   case class OrderEdge(first: Operation, second: Operation) extends Ast

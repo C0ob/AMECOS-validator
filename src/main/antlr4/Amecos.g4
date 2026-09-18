@@ -68,4 +68,5 @@ valueAtom: NUM | '-' NUM | 'output' | 'name' | THIS | THAT | STRING | operationF
 operationField: (THIS | THAT) '.' ('output' | 'name');
 comparator: '==' | '!=' | '<' | '<=' | '>' | '>=' | 'same object as' | 'same input as' | 'same output as';
 setAtom: 'context' | 'future' | 'all' | 'input';
-setExpr: setAtom | THIS '.' setAtom;
+setExpr: setExpr setOperator setExpr | setAtom | THIS '.' setAtom | THAT '.' setAtom;
+setOperator: 'union' | 'intersect' | 'difference';

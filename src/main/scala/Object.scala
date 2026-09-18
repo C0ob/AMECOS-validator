@@ -1,7 +1,7 @@
 /** Base type for an AMECOS object specification. */
 abstract class Object(val name: String):
   /** Constructs an operation execution belonging to this object. */
-  def new_op(process: Process, name: String, args: List[dataType], ret: Option[dataType], start: Int, end: Int): Operation =
+  def new_op(process: Process, name: String, args: List[DataType], ret: Option[DataType], start: Int, end: Int): Operation =
     throw new IllegalArgumentException("Operation not found for " + this.name + " : " + name)
 
 /** Factory for the object specifications supported by the DSL. */
