@@ -1,7 +1,6 @@
 import Amecos.{AmecosBaseVisitor, AmecosParser}
 import Ast.*
 
-import javax.xml.crypto.Data
 import scala.jdk.CollectionConverters.*
 
 /** Builds the application AST and domain objects from the generated ANTLR tree. */
@@ -52,9 +51,9 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
     val signature = visitSignature(ctx.signature())
 
     // placeholders
-    var vPred: F = (_, _) => true
-    var sPred: F = (_, _) => true
-    var lPred: F = (_, _) => true
+    var vPred: Formula = (_, _) => true
+    var sPred: Formula = (_, _) => true
+    var lPred: Formula = (_, _) => true
 
     if ctx.predicate() != null then ctx.predicate().forEach(p =>
       val predicate = visitPredicate(p)
@@ -90,102 +89,66 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
       case other => throw new IllegalArgumentException(s"Unknown predicate type: $other") // realistically never happens
     }
 
-    Predicate((order, operation) => visitFormula(ctx.formula(), order, operation, operation).f(order, operation), predType)
+    Predicate((order, operation) => visitFormula(ctx.formula(), order, operation, operation)(order, operation), predType)
 
   def visitFormula(ctx: AmecosParser.FormulaContext, order: Order, operation: Operation, ths: Operation): Formula =
     visitDisjunction(ctx.disjunction(), order, operation, ths)
 
   def visitDisjunction(ctx: AmecosParser.DisjunctionContext, order: Order, operation: Operation, ths: Operation): Formula =
-    val formulas = ctx.conjunction().asScala.map(c => visitConjunction(c, order, operation, ths).f).toList
-    Formula((_, _) => formulas.exists(f => f(order, operation)))
+    val formulas = ctx.conjunction().asScala.map(c => visitConjunction(c, order, operation, ths)).toList
+    (_, _) => formulas.exists(f => f(order, operation))
 
   def visitConjunction(ctx: AmecosParser.ConjunctionContext, order: Order, operation: Operation, ths: Operation): Formula =
-    val formulas = ctx.unary().asScala.map(u => visitUnary(u, order, operation, ths).f).toList
-    Formula((_, _) => formulas.forall(f => f(order, operation)))
+    val formulas = ctx.unary().asScala.map(u => visitUnary(u, order, operation, ths)).toList
+    (_, _) => formulas.forall(f => f(order, operation))
 
   def visitUnary(ctx: AmecosParser.UnaryContext, order: Order, operation: Operation, ths: Operation): Formula =
-    if ctx.NOT() != null then Formula((_, _) => !visitUnary(ctx.unary(), order, operation, ths).f(order, operation))
-    else Formula((_, _) => visitFormulaAtom(ctx.formulaAtom(), order, operation, ths).f(order, operation))
+    if ctx.NOT() != null then (_, _) => !visitUnary(ctx.unary(), order, operation, ths)(order, operation)
+    else (_, _) => visitFormulaAtom(ctx.formulaAtom(), order, operation, ths)(order, operation)
 
   def visitFormulaAtom(ctx: AmecosParser.FormulaAtomContext, order: Order, operation: Operation, ths: Operation): Formula =
-    if ctx.TRUE() != null then return Formula((_, _) => true)
-    if ctx.FALSE() != null then return Formula((_, _) => false)
+    if ctx.TRUE() != null then return (_, _) => true
+    if ctx.FALSE() != null then return (_, _) => false
     if ctx.formula() != null then return visitFormula(ctx.formula(), order, operation, ths)
-    if ctx.quantifier() != null then return Formula((order, operation) => visitQuantifier(ctx.quantifier(), order, operation, ths).f(order, operation))
+    if ctx.quantifier() != null then return (order, operation) => visitQuantifier(ctx.quantifier(), order, operation, ths)(order, operation)
 
     val a = visitValueExpr(ctx.valueExpr(0), order, operation, ths)
     val b = visitValueExpr(ctx.valueExpr(1), order, operation, ths)
-    if a.valType == ValTypes.operation && b.valType == ValTypes.operation then {
-      val comp: (Operation, Operation) => Boolean = visitComparator(ctx.comparator()).comparator match {
-        case ComparatorType.eq => (a, b) => a == b
-        case ComparatorType.neq => (a, b) => a != b
-        case ComparatorType.sameObj => (a, b) => a.obj == b.obj
-        case ComparatorType.sameInput => (a, b) => a.input sameElements b.input
-        case ComparatorType.sameOutput => (a, b) => a.output == b.output
-        case other => throw new IllegalArgumentException(s"Unknown comparator for ${a.valType}: $other")
-      }
-      return Formula((_, _) => comp(a.opVal, b.opVal))
-    }
-    if a.valType == ValTypes.string && b.valType == ValTypes.string then {
-      val comp: (String, String) => Boolean = visitComparator(ctx.comparator()).comparator match {
-        case ComparatorType.eq => (a, b) => a == b
-        case ComparatorType.neq => (a, b) => a != b
-        case other => throw new IllegalArgumentException(s"Unknown comparator for ${a.valType}: $other")
-      }
-      return Formula((_, _) => comp(a.stringVal, b.stringVal))
-    }
-    if a.valType == ValTypes.void && b.valType == ValTypes.void then {
-      val comp = visitComparator(ctx.comparator()).comparator match
-        case ComparatorType.eq => (a: Unit, b: Unit) => true
-        case ComparatorType.neq => (a: Unit, b: Unit) => false
-        case other => throw new IllegalArgumentException(s"Unknown comparator for ${a.valType}: $other")
-      return Formula((_, _) => comp((), ()))
-    }
-    if a.valType == ValTypes.int || b.valType == ValTypes.int then {
-      val comp: (Int, Int) => Boolean = visitComparator(ctx.comparator()).comparator match {
-        case ComparatorType.eq => (a, b) => a == b
-        case ComparatorType.neq => (a, b) => a != b
-        case ComparatorType.leq => (a, b) => a <= b
-        case ComparatorType.geq => (a, b) => a >= b
-        case ComparatorType.lt => (a, b) => a < b
-        case ComparatorType.gt => (a, b) => a > b
-        case other => throw new IllegalArgumentException(s"Unknown comparator for ${a.valType}: $other")
-      }
-      return Formula((_, _) => comp(a.intVal, b.intVal))
-    }
-      visitComparator(ctx.comparator()).comparator match {
-        case ComparatorType.eq => Formula((_, _) => false)
-        case ComparatorType.neq => Formula((_, _) => true)
-        case other => throw new IllegalArgumentException(s"Unknown comparator for ${a.valType} and ${b.valType}: $other")
-      }
+    
+    val comparator = parseComparator(ctx.comparator())
+    (_, _) => a.comp(b, comparator)
 
   def visitQuantifier(ctx: AmecosParser.QuantifierContext, order: Order, operation: Operation, ths: Operation): Formula =
     val set = visitSetExpr(ctx.setExpr(), order, operation, ths)
-    if set.valType != ValTypes.operation then throw new IllegalArgumentException("Cannot quantify over non-operation set: " + set.valType)
-    var opSet = set.opVals
-    if ctx.where() != null then opSet = opSet.filter(o => visitWhere(ctx.where(), order, o, operation).f(order, o))
-    if ctx.FORALL() != null then Formula((_, _) => opSet.forall(o => visitFormula(ctx.formula(), order, o, operation).f(order, o)))
-      else Formula((_, _) => opSet.exists(o => visitFormula(ctx.formula(), order, o, operation).f(order, o)))
+    var opSet: Set[Operation] = Set()
+    set match
+      case OperationDataSet(set) =>
+        opSet = set
+        if ctx.where() != null then opSet = set.filter(o => visitWhere(ctx.where(), order, o, operation)(order, o))
+        if ctx.FORALL() != null then (_, _) => opSet.forall(o => visitFormula(ctx.formula(), order, o, operation)(order, o))
+        else (_, _) => opSet.exists(o => visitFormula(ctx.formula(), order, o, operation)(order, o))
+        
+      case other => throw new IllegalArgumentException("Cannot quantify over non-operation set: " + other)
 
   def visitWhere(ctx: AmecosParser.WhereContext, order: Order, operation: Operation, ths: Operation): Formula = 
     visitFormula(ctx.formula(), order, operation, ths)
     
-  override def visitComparator(ctx: AmecosParser.ComparatorContext): Comparator =
+  def parseComparator(ctx: AmecosParser.ComparatorContext): ComparatorTypes =
     ctx.getText match {
-      case "==" => Comparator(ComparatorType.eq)
-      case "!=" => Comparator(ComparatorType.neq)
-      case "<=" => Comparator(ComparatorType.leq)
-      case ">=" => Comparator(ComparatorType.geq)
-      case "<" => Comparator(ComparatorType.lt)
-      case ">" => Comparator(ComparatorType.gt)
-      case "same object as" => Comparator(ComparatorType.sameObj)
-      case "same input as" => Comparator(ComparatorType.sameInput)
-      case "same output as" => Comparator(ComparatorType.sameOutput)
+      case "==" => ComparatorTypes.eq
+      case "!=" => ComparatorTypes.neq
+      case "<=" => ComparatorTypes.leq
+      case ">=" => ComparatorTypes.geq
+      case "<" => ComparatorTypes.lt
+      case ">" => ComparatorTypes.gt
+      case "same object as" => ComparatorTypes.sameObj
+      case "same input as" => ComparatorTypes.sameInput
+      case "same output as" => ComparatorTypes.sameOutput
       case other => throw new IllegalArgumentException(s"Unknown comparator: $other")
     }
 
   /** Evaluates a parsed value expression in the context of an operation and order. */
-  def visitValueExpr(ctx: AmecosParser.ValueExprContext, order: Order, operation: Operation, ths: Operation): Value = {
+  def visitValueExpr(ctx: AmecosParser.ValueExprContext, order: Order, operation: Operation, ths: Operation): Data = {
     if ctx.valueAtom() != null then return visitValueAtom(ctx.valueAtom(), order, operation, ths)
     if ctx.mathOp() != null then {
       val op = visitMathOp(ctx.mathOp()).op match {
@@ -196,43 +159,46 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
       }
       val a = visitValueExpr(ctx.valueExpr(0), order, operation, ths)
       val b = visitValueExpr(ctx.valueExpr(1), order, operation, ths)
-       if a.valType != ValTypes.int || b.valType != ValTypes.int then throw IllegalArgumentException(s"Cannot invoke arithmetic on ${a.valType} and ${b.valType}")
-       return Value(ValTypes.int, op(a.intVal, b.intVal))
+      a match {
+        case x: IntData => b match {
+          case y: IntData => return IntData(op(x.get, y.get))
+          case other => throw IllegalArgumentException("Cannot perform math operation on non-int value: " + other)
+        }
+        case other => throw IllegalArgumentException("Cannot perform math operation on non-int value: " + other)
+      }
     }
     if ctx.index() != null then return visitIndex(ctx.index(), order, operation, ths)
     val set = visitSetExpr(ctx.setExpr(), order, operation, ths)
-    if set.valType != ValTypes.operation then throw IllegalArgumentException(s"Cannot get latest of set type ${set.valType}")
-    Value(ValTypes.int, Math.max(set.values.length, set.opVals.size))
+    IntData(set.data.size)
   }
 
-  def visitIndex(ctx: AmecosParser.IndexContext, order: Order, operation: Operation, tht: Operation ): Value =
-    val set = visitSetExpr(ctx.setExpr(), order, operation, tht)
-    if set.valType != ValTypes.int then throw IllegalArgumentException(s"Cannot index on type ${set.valType}.")
+  def visitIndex(ctx: AmecosParser.IndexContext, order: Order, operation: Operation, tht: Operation ): Data =
+    val tuple = visitTupleExpr(ctx.tupleExpr(), operation, tht)
     val idx = Integer.parseInt(ctx.NUM().getText)
-    if idx >= set.values.length then throw IllegalArgumentException(s"Index out of bounds at ${ctx.getText}")
-    set.values(idx) match
-      case value: Int => Value(ValTypes.int, value)
-      case value: String => Value(ValTypes.string, stringVal = value)
-      case _: Unit => Value(ValTypes.void)
+    tuple.values.lift(idx).getOrElse(
+      throw IllegalArgumentException(s"Index out of bounds at ${ctx.getText}")
+    )
+
+  def visitTupleExpr(ctx: AmecosParser.TupleExprContext, operation: Operation, ths: Operation): TupleValue =
+    visitTupleAtom(ctx.tupleAtom(), operation, ths)
+
+  def visitTupleAtom(ctx: AmecosParser.TupleAtomContext, operation: Operation, ths: Operation): TupleValue =
+    val target = if ctx.getText.startsWith("this") then ths else operation
+    InputTuple(target.input.toVector)
 
   /** Evaluates a literal or operation-output value. */
-  def visitValueAtom(ctx: AmecosParser.ValueAtomContext, order: Order, operation: Operation, ths: Operation): Value =
-    if ctx.NUM() != null then return Value(ValTypes.int, Integer.parseInt(ctx.getText))
+  def visitValueAtom(ctx: AmecosParser.ValueAtomContext, order: Order, operation: Operation, ths: Operation): Data =
+    if ctx.NUM() != null then return IntData(Integer.parseInt(ctx.getText))
     if ctx.operationField() != null then {
       val target = if ctx.getText.startsWith("this") then ths else operation
-      if ctx.getText.endsWith("name") then return Value(ValTypes.string, stringVal = target.name)
-      return valueOf(target.output.getOrElse(()))
+      if ctx.getText.endsWith("name") then return StringData(target.name)
+      return target.output
     }
-    if ctx.getText == "name" then return Value(ValTypes.string, stringVal = operation.name)
-    if ctx.STRING() != null then return Value(ValTypes.string, stringVal = unquote(ctx.getText))
-    if ctx.THIS() != null then return Value(ValTypes.operation, opVal = ths)
-    if ctx.THAT() != null then return Value(ValTypes.operation, opVal = operation)
-    valueOf(operation.output.getOrElse(()))
-
-  private def valueOf(value: DataType): Value = value match
-    case int: Int => Value(ValTypes.int, int)
-    case string: String => Value(ValTypes.string, stringVal = string)
-    case unit: Unit => Value(ValTypes.void)
+    if ctx.getText == "name" then return StringData(operation.name)
+    if ctx.STRING() != null then return StringData(unquote(ctx.getText))
+    if ctx.THIS() != null then return OperationData(ths)
+    if ctx.THAT() != null then return OperationData(operation)
+    operation.output
 
   private def unquote(value: String): String =
     value.substring(1, value.length - 1)
@@ -249,7 +215,7 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
     }
 
   /** Evaluates a context, future, or input set expression. */
-  def visitSetExpr(ctx: AmecosParser.SetExprContext, order: Order, operation: Operation, ths: Operation): SetVal =
+  def visitSetExpr(ctx: AmecosParser.SetExprContext, order: Order, operation: Operation, ths: Operation): DataSet =
     if ctx.setOperator() != null then
       return combineSets(
         visitSetExpr(ctx.setExpr(0), order, operation, ths),
@@ -259,35 +225,20 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
     val op = if ctx.THIS() != null then ths else operation
     visitSetAtom(ctx.setAtom(), order, op)
 
-  private def combineSets(left: SetVal, right: SetVal, operator: String): SetVal =
-    if left.valType != right.valType then
-      throw new IllegalArgumentException(s"Cannot combine ${left.valType} and ${right.valType} sets")
-    left.valType match
-      case ValTypes.operation =>
-        val values = operator match
-          case "union" => left.opVals union right.opVals
-          case "intersect" => left.opVals intersect right.opVals
-          case "difference" => left.opVals diff right.opVals
-          case _ => throw new IllegalArgumentException(s"Unknown set operator: $operator")
-        SetVal(ValTypes.operation, opVals = values)
-      case ValTypes.int | ValTypes.string =>
-        val values = operator match
-          case "union" => (left.values ++ right.values).distinct
-          case "intersect" => left.values.filter(right.values.contains).distinct
-          case "difference" => left.values.filterNot(right.values.contains)
-          case _ => throw new IllegalArgumentException(s"Unknown set operator: $operator")
-        SetVal(left.valType, values = values)
-      case ValTypes.void =>
-        SetVal(ValTypes.void, values = Array(()))
+  private def combineSets(left: DataSet, right: DataSet, operator: String): DataSet =
+    operator match
+      case "union" => left.union(right)
+      case "intersect" => left.intersect(right)
+      case "difference" => left.diff(right)
+      case _ => throw new IllegalArgumentException(s"Unknown set operator: $operator")
 
-  def visitSetAtom(ctx: AmecosParser.SetAtomContext, order: Order, operation: Operation): SetVal =
+  def visitSetAtom(ctx: AmecosParser.SetAtomContext, order: Order, operation: Operation): DataSet =
     ctx.getText match {
-      case "context" => SetVal(ValTypes.operation, Array(), order.context(operation))
-      case "future" => SetVal(ValTypes.operation, Array(), order.future(operation))
-      case "input" => SetVal(ValTypes.int, operation.input)
-      case "all" => SetVal(ValTypes.operation, Array(), order.history.opExes)
+      case "context" => OperationDataSet(order.context(operation))
+      case "future" => OperationDataSet(order.future(operation))
+      case "all" => OperationDataSet(history.opExes)
       case other => throw new IllegalArgumentException(s"Unknown set expression: $other")
-  }
+    }
 
   /** Resolves consistency names from a `check` clause. */
   override def visitConsistencies(ctx: AmecosParser.ConsistenciesContext): Consistencies =
@@ -313,8 +264,8 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
     val args = visitArgs(ctx.args()).args
     val interval = if ctx.interval() == null then Interval(0, 0) else visitInterval(ctx.interval())
     val ret = Option(ctx.argValue()).map(v =>
-      if v.NUM() != null then Integer.parseInt(v.getText)
-      else unquote(v.getText)
+      if v.NUM() != null then IntData(Integer.parseInt(v.getText))
+      else StringData(unquote(v.getText))
     )
     val obj = objMap.getOrElse(obj_name, throw new Exception("Object " + obj_name + " not found: " + ctx.getText))
     try
@@ -326,8 +277,8 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
   override def visitArgs(ctx: AmecosParser.ArgsContext): Args =
     if ctx == null then Args(List())
     else Args(ctx.argValue().asScala.toList.map(v =>
-      if v.NUM() != null then Integer.parseInt(v.getText)
-      else unquote(v.getText)
+      if v.NUM() != null then IntData(Integer.parseInt(v.getText))
+      else StringData(unquote(v.getText))
     ))
 
   /** Converts an op-ex interval to an AST interval. */

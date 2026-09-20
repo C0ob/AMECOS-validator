@@ -117,7 +117,9 @@ object HistoryDiagram:
 
   private def operationLabel(operation: Operation): String =
     val args = operation.input.mkString("(", ", ", ")")
-    val result = operation.output.map(value => "/" + value).getOrElse("")
+    val result = operation.output match
+      case UnitData() => ""
+      case value => "/" + value
     s"${operation.obj.name}.${operation.name}$args$result"
 
   private def escape(value: String): String =

@@ -62,11 +62,13 @@ valueExpr: valueAtom
          | index
          | valueExpr mathOp valueExpr;
          
-index: setExpr '['NUM']';
+index: tupleExpr '['NUM']';
+tupleExpr: tupleAtom;
+tupleAtom: 'input' | THIS '.' 'input' | THAT '.' 'input';
 mathOp: '+' | '-' | '*' | '/';
 valueAtom: NUM | '-' NUM | 'output' | 'name' | THIS | THAT | STRING | operationField;
 operationField: (THIS | THAT) '.' ('output' | 'name');
 comparator: '==' | '!=' | '<' | '<=' | '>' | '>=' | 'same object as' | 'same input as' | 'same output as';
-setAtom: 'context' | 'future' | 'all' | 'input';
+setAtom: 'context' | 'future' | 'all';
 setExpr: setExpr setOperator setExpr | setAtom | THIS '.' setAtom | THAT '.' setAtom;
 setOperator: 'union' | 'intersect' | 'difference';

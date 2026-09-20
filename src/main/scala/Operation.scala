@@ -1,7 +1,3 @@
-/** Values accepted as operation arguments and results. (only support Int for now) */
-/** Runtime representation of values accepted by operation arguments/results. */
-type DataType = Int | String | Unit
-
 /** An operation execution (op-ex) in an AMECOS history.
  *
  * Its V/S/L predicates describe validity, safety, and liveness respectively.
@@ -10,9 +6,9 @@ abstract class Operation(val process: Process, val obj: Object, val inputTypes: 
                          val outputType: Option[DataTypes], start: Int, end: Int, val name: String = "") {
 
   /** Concrete argument values supplied to this operation. */
-  val input: Array[DataType] = Array()
+  val input: Array[Data] = Array()
   /** Concrete result returned by this operation, when any. */
-  val output: Option[DataType] = None
+  val output: Data = UnitData()
 
   /** Invocation and response timestamps, inclusive. */
   var interval: (Int, Int) = (start, end)
@@ -40,7 +36,7 @@ abstract class Operation(val process: Process, val obj: Object, val inputTypes: 
   def l(order: Order): Boolean
 
   /** Formats the operation, result, and execution interval for diagnostics. */
-  override def toString: String = name + input.mkString("(", ", ", ")") + "/" + output.mkString + " " + interval.toString()
+  override def toString: String = name + input.mkString("(", ", ", ")") + "/" + output + " " + interval.toString()
 
   /** Checks the op-ex's V, S, and L predicates. */
   def legal(order: Order, doPrint: Boolean = false): Boolean = {
@@ -60,8 +56,3 @@ abstract class Operation(val process: Process, val obj: Object, val inputTypes: 
   }
 
 }
-
-/** Runtime types declared by an operation's sequential specification. */
-enum DataTypes:
-  /** Integer data. */
-  case Int, String, Unit
