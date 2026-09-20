@@ -1,0 +1,8 @@
+import "def.amecos"
+
+new Counter C1
+new Counter C2
+
+process p1:
+    C1.Inc()/1
+    C2.Inc()/1

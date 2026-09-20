@@ -1,0 +1,6 @@
+import "def.amecos"
+
+new Counter C
+
+process p:
+  C.Inc()/1 (1, 2)

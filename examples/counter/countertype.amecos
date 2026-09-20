@@ -1,0 +1,12 @@
+type Counter:
+    operation Inc:
+        void -> int
+        S = output == count(context) + 1;
+
+check Linearizability
+
+new Counter C
+
+process p1
+    C.Inc()/1
+    C.Inc()/2
