@@ -1,0 +1,11 @@
+type STD_Register:
+    operation Write:
+        int -> void
+
+    operation Read:
+        void -> int
+        V = exists in context where this same object as that: name == "Write";
+        S = exists in context where this same object as that:
+                (name == "Write") and (this.output == input[0])
+                and not exists in that.future where this same object as that:
+                    (name == "Write");

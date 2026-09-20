@@ -1,0 +1,6 @@
+import "def.amecos"
+
+new Register R
+
+process p:
+  R.Read()/7 (1, 2)

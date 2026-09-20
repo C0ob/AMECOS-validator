@@ -1,0 +1,9 @@
+import "def.amecos"
+
+new Register R
+
+process p:
+  R.Write(7) (1, 2)
+  R.Read()/7 (3, 4)
+
+p.0->p.1

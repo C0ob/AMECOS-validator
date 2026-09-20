@@ -1,0 +1,11 @@
+import "def.amecos"
+
+new Dictionary D
+
+process p:
+  D.Put("key", "one") (1, 2)
+  D.Put("key", "two") (3, 4)
+  D.Get("key")/"one" (5, 6)
+
+p.0->p.1
+p.1->p.2
