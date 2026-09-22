@@ -14,26 +14,29 @@ THAT: 'that';
 WS : [ \t\r\n]+ -> skip;
 COMMENT: '//' ~[\r\n]* -> skip;
 OBJ: [A-Z] [A-Z0-9_]*;
+DATATYPE: 'int' | 'string' | 'void';
 PROC: [a-z] [a-z0-9_]*;
 NUM: [0-9]+ ;
-NAME : [A-Z] [a-zA-Z0-9_]* ;
 STRING: '"' ( '\\' . | ~["\\] )* '"';
+NAME : [A-Z] [a-zA-Z0-9_]* ;
 
 
 
 /** Parser rules */
 app: typedef* consistencies? init+ process* order* EOF;
 
-typedef: 'type' NAME (':' opdef+)?;
+typedef: 'type' NAME typePars? (':' opdef+)?;
 opdef: 'operation' NAME ':' signature predicate*;
 predicate: ('V' | 'S' | 'L') '=' formula ';';
-signature:  inputtype '->' outputtype;
-inputtype: iotype (',' iotype)*;
-outputtype: iotype;
-iotype: 'int' | 'string' | 'void';
+typePars: '<' typeParam (',' typeParam)* '>';
+typeParam: NAME | OBJ;
+typeargs: '<' DATATYPE (',' DATATYPE)* '>';
+signature:  inputtype '->' datatype;
+inputtype: datatype (',' datatype)*;
+datatype: NAME | OBJ | DATATYPE;
 
 consistencies: 'check' NAME (',' NAME)*;
-init: 'new' (OBJ NAME | NAME OBJ);
+init: 'new' (NAME OBJ typeargs? | NAME typeargs OBJ);
 args: argValue (',' argValue)*;
 argValue: NUM | STRING;
 interval: '(' NUM ',' NUM ')';

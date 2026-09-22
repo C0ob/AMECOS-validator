@@ -7,11 +7,12 @@ abstract class Object(val name: String):
 /** Factory for the object specifications supported by the DSL. */
 object Object:
   /** Creates a registered object implementation by its DSL type name. */
-  def new_object(object_type: String, name: String, factories: Map[String, CustomObjectFactory]): Object = {
+  def new_object(object_type: String, name: String, factories: Map[String, CustomObjectFactory],
+                 typeArgs: List[DataTypes] = Nil): Object = {
     val customObjectFactory = factories.get(object_type)
     if customObjectFactory.isEmpty then
       object_type match
         case "Register" => new Register(name)
         case _ => throw new IllegalArgumentException("Object type not found: " + object_type)
-    else customObjectFactory.get.create()    
+    else customObjectFactory.get.create(typeArgs)
   }

@@ -3,7 +3,7 @@
  * Its V/S/L predicates describe validity, safety, and liveness respectively.
  */
 abstract class Operation(val process: Process, val obj: Object, val inputTypes: Array[DataTypes],
-                         val outputType: Option[DataTypes], start: Int, end: Int, val name: String = "") {
+                         val outputType: DataTypes, start: Int, end: Int, val name: String = "") {
 
   /** Concrete argument values supplied to this operation. */
   val input: Array[Data] = Array()

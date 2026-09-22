@@ -1,0 +1,6 @@
+import "def.amecos"
+
+new Dictionary<int, string> D
+
+process p1:
+    D.Put(1,1)

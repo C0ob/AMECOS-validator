@@ -8,6 +8,16 @@ enum PredType:
 enum MathOps:
   /** Addition operator. */
   case plus, min, times, div
+
+/** A type appearing in a DSL operation signature, before generic types are specialized. */
+enum TypeExpr:
+  case Concrete(value: DataTypes)
+  case Variable(name: String)
+
+  def resolve(types: Map[String, DataTypes]): DataTypes = this match
+    case Concrete(value) => value
+    case Variable(name) =>
+      types.getOrElse(name, throw IllegalArgumentException(s"Unresolved type variable: $name"))
   
 /** Constructors for the parser's intermediate representation. */
 object Ast:
@@ -21,7 +31,7 @@ object Ast:
   case class OpDef(factory: CustomOperationFactory) extends Ast
   
   /** Parsed operation signature. */
-  case class OpSignature(inputTypes: Array[DataTypes], outputType: Option[DataTypes]) extends Ast
+  case class OpSignature(inputTypes: Array[TypeExpr], outputType: TypeExpr) extends Ast
   
   /** Parsed input signature types. */
   case class InType(inputTypes: Array[DataTypes]) extends Ast

@@ -1,9 +1,9 @@
-type STD_Register:
+type STD_Register<T>:
     operation Write:
-        int -> void
+        T -> void
 
     operation Read:
-        void -> int
+        void -> T
         V = exists in context where this same object as that: name == "Write";
         S = exists in context where this same object as that:
                 (name == "Write") and (this.output == input[0])

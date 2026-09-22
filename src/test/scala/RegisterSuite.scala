@@ -32,3 +32,11 @@ class RegisterSuite extends AnyFeatureSpec with AmecosTypeSuite:
     Scenario("validates write and read arguments"):
       intercept[IllegalArgumentException](parseFixture("Register", "invalid_write.amecos"))
       intercept[IllegalArgumentException](parseFixture("Register", "invalid_read.amecos"))
+
+    Scenario("specializes the generic register with different types"):
+      val app = parseFixture("Register", "generic_types.amecos")
+
+      val results = app.history.opExes.filter(_.name == "Read").map(_.output)
+      assert(results.contains(IntData(7)))
+      assert(results.contains(StringData("seven")))
+      assert(app.history.legal(app.order))

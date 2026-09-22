@@ -40,8 +40,11 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
   /** Creates new object factories from a `typedef` declaration. */
   override def visitTypedef(ctx: AmecosParser.TypedefContext): TypeDef =
     val typeName = ctx.NAME().getText
+    val typeVars =
+      if ctx.typePars() == null then Nil
+      else ctx.typePars().getText.drop(1).dropRight(1).split(",").toList
     val opFactories = ctx.opdef().asScala.map(o => visitOpdef(o).factory).toSet
-    val factory = new CustomObjectFactory(typeName, opFactories)
+    val factory = new CustomObjectFactory(typeName, opFactories, typeVars)
     factories = factories + (typeName -> factory)
     TypeDef(factory)
 
@@ -65,21 +68,22 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
     OpDef(CustomOperationFactory(signature.inputTypes, signature.outputType, name, vPred, sPred, lPred))
 
   override def visitSignature(ctx: AmecosParser.SignatureContext): OpSignature =
-    val inputTypes = visitInputtype(ctx.inputtype()).inputTypes
-    val outputTypes = visitOutputtype(ctx.outputtype()).outputType
+    val inputTypes = parseInputtype(ctx.inputtype())
+    val outputTypes = parseDatatype(ctx.datatype())
     OpSignature(inputTypes, outputTypes)
 
-  override def visitInputtype(ctx: AmecosParser.InputtypeContext): InType =
-    if ctx.getText == "void" then return InType(Array())
+  private def parseInputtype(ctx: AmecosParser.InputtypeContext): Array[TypeExpr] =
+    if ctx.getText == "void" then return Array()
     if ctx.getText.contains("void") then throw IllegalArgumentException(s"void cannot be part of composite signature: " + ctx.getText)
-    InType(ctx.iotype().asScala.map(t => if t.getText == "string" then DataTypes.String else DataTypes.Int).toArray)
+    ctx.datatype().asScala.map(parseDatatype).toArray
 
 
-  override def visitOutputtype(ctx: AmecosParser.OutputtypeContext): OutType =
+  private def parseDatatype(ctx: AmecosParser.DatatypeContext): TypeExpr =
     ctx.getText match
-      case "int" => OutType(Some(DataTypes.Int))
-      case "string" => OutType(Some(DataTypes.String))
-      case _ => OutType(None)
+      case "int" => TypeExpr.Concrete(DataTypes.Int)
+      case "string" => TypeExpr.Concrete(DataTypes.String)
+      case "void" => TypeExpr.Concrete(DataTypes.Unit)
+      case name => TypeExpr.Variable(name)
 
   override def visitPredicate(ctx: AmecosParser.PredicateContext): Predicate =
     val predType = ctx.getStart.getText match {
@@ -133,7 +137,7 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
   def visitWhere(ctx: AmecosParser.WhereContext, order: Order, operation: Operation, ths: Operation): Formula = 
     visitFormula(ctx.formula(), order, operation, ths)
     
-  def parseComparator(ctx: AmecosParser.ComparatorContext): ComparatorTypes =
+  private def parseComparator(ctx: AmecosParser.ComparatorContext): ComparatorTypes =
     ctx.getText match {
       case "==" => ComparatorTypes.eq
       case "!=" => ComparatorTypes.neq
@@ -248,8 +252,18 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
   override def visitInit(ctx: AmecosParser.InitContext): InitObj =
     val name = ctx.OBJ().getText
     val object_type = ctx.NAME().getText
-    val obj = Object.new_object(object_type, name, factories)
+    val typeArgs =
+      if ctx.typeargs() == null then Nil
+      else ctx.typeargs().DATATYPE().asScala.toList.map(parseConcreteType)
+    val obj = Object.new_object(object_type, name, factories, typeArgs)
     InitObj(name, obj)
+
+  private def parseConcreteType(token: org.antlr.v4.runtime.tree.TerminalNode): DataTypes =
+    token.getText match
+      case "int" => DataTypes.Int
+      case "string" => DataTypes.String
+      case "void" => DataTypes.Unit
+      case other => throw IllegalArgumentException(s"Unknown concrete type: $other")
 
   /** Creates a process and all of its op-exes. */
   override def visitProcess(ctx: AmecosParser.ProcessContext): Proc =

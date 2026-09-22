@@ -8,7 +8,7 @@ class Register(name: String) extends Object(name):
       case _ => super.new_op(process, name, args, ret, start, end)
 
 /** Register read operation; its return value must be the current register value. */
-class Read(process: Process, obj: Object, in: List[Data], out: Option[Data], start: Int, end: Int) extends Operation(process, obj, Array.empty, Some(DataTypes.Int), start, end, "Read"):
+class Read(process: Process, obj: Object, in: List[Data], out: Option[Data], start: Int, end: Int) extends Operation(process, obj, Array.empty, DataTypes.Int, start, end, "Read"):
   if in.nonEmpty then throw new IllegalArgumentException("Read has 0 arguments, but got " + in.mkString(","))
   if out.isEmpty then throw new IllegalArgumentException("Read returns something, but got nothing")
   override val output: Data = out.get
@@ -27,7 +27,7 @@ class Read(process: Process, obj: Object, in: List[Data], out: Option[Data], sta
   def l(order: Order): Boolean = true
 
 /** Register write operation. */
-class Write(process: Process, obj: Object, in: List[Data], out: Option[Data], start: Int, end: Int) extends Operation(process, obj, Array(DataTypes.Int), None, start, end, "Write"):
+class Write(process: Process, obj: Object, in: List[Data], out: Option[Data], start: Int, end: Int) extends Operation(process, obj, Array(DataTypes.Int), DataTypes.Unit, start, end, "Write"):
   if out.isDefined then throw new IllegalArgumentException("Write returns nothing, but got " + out)
   if in.size != 1 then throw new IllegalArgumentException("Write has 1 argument, but got " + in.mkString(","))
   override val input: Array[Data] = Array(in.head)

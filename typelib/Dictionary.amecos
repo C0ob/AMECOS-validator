@@ -1,9 +1,9 @@
-type Dictionary:
+type Dictionary<Key, Value>:
     operation Put:
-        string, string -> void
+        Key, Value -> void
 
     operation Get:
-        string -> string
+        Key -> Value
         V = exists in context where this same object as that:
                 name == "Put";
         S = exists in context where this same object as that:

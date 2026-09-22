@@ -11,6 +11,13 @@ sealed abstract class Data(val value: DataType):
   def get: DataType = value
   override def toString: String = value.toString
 
+  def getType: DataTypes =
+    this match
+      case IntData(_) => DataTypes.Int
+      case StringData(_) => DataTypes.String
+      case UnitData() => DataTypes.Unit
+      case OperationData(_) => DataTypes.Operation
+
   def comp(other: Data, comparator: ComparatorTypes): Boolean = comparator match
     case ComparatorTypes.eq  => false
     case ComparatorTypes.neq => true

@@ -1,0 +1,9 @@
+import "def.amecos"
+
+new Dictionary<int,int> D
+
+process p:
+    D.Put(7, 42) (1, 2)
+    D.Get(7)/42 (3, 4)
+
+p.0->p.1

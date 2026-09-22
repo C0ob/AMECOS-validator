@@ -6,6 +6,11 @@ class DictionarySuite extends AnyFeatureSpec with AmecosTypeSuite:
       case StringData(value) => value
       case output => fail(s"Dictionary.Get returned $output")
 
+  private def getIntResult(app: Ast.App): Int =
+    app.history.opExes.find(_.name == "Get").get.output match
+      case IntData(value) => value
+      case output => fail(s"Dictionary.Get returned $output")
+
   Feature("Dictionary"):
     Scenario("gets the value of a preceding put"):
       val app = parseFixture("Dictionary", "valid.amecos")
@@ -41,3 +46,11 @@ class DictionarySuite extends AnyFeatureSpec with AmecosTypeSuite:
 
       assert(getResult(app) == "two")
       assert(app.history.legal(app.order))
+
+    Scenario("supports integer type arguments"):
+      val app = parseFixture("Dictionary", "integer.amecos")
+
+      assert(app.history.legal(app.order))
+
+    Scenario("rejects wrong type arguments"):
+      intercept[IllegalArgumentException](parseFixture("Dictionary", "invalid_type.amecos"))

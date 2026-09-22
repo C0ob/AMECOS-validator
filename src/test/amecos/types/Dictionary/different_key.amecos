@@ -1,6 +1,6 @@
 import "def.amecos"
 
-new Dictionary D
+new Dictionary<string,string> D
 
 process p:
   D.Put("other", "two") (1, 2)

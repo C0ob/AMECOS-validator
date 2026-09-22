@@ -1,0 +1,13 @@
+import "def.amecos"
+
+new STD_Register<int> RI
+new STD_Register<string> RS
+
+process p:
+    RI.Write(7) (1, 2)
+    RI.Read()/7 (3, 4)
+    RS.Write("seven") (5, 6)
+    RS.Read()/"seven" (7, 8)
+
+p.0->p.1
+p.2->p.3
