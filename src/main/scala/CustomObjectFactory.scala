@@ -9,13 +9,13 @@ class CustomObjectFactory(val name: String, opFactories: Set[CustomOperationFact
       case None => throw new Exception("Operation not defined for " + this.name + " : " + name)
 
   /** Creates a runtime object instance backed by this type definition. */
-  def create(typeArgs: List[DataTypes]): Object =
+  def create(objectName: String, typeArgs: List[DataTypes]): Object =
     if typeArgs.size != typeVars.size then
       throw IllegalArgumentException(
         s"Type $name expects ${typeVars.size} type argument(s), got ${typeArgs.size}")
     val typeVals = typeVars.zip(typeArgs).toMap
-    new CustomObject(opFactories.map(_.specialize(typeVals)))
+    new CustomObject(objectName, opFactories.map(_.specialize(typeVals)))
 
-  private class CustomObject(factories: Set[CustomOperationFactory]) extends Object(name):
+  private class CustomObject(objectName: String, factories: Set[CustomOperationFactory]) extends Object(objectName):
     override def new_op(process: Process, name: String, args: List[Data], ret: Option[Data], start: Int, end: Int): Operation =
       factory_new_op(this, process, name, args, ret, start, end, factories)

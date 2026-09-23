@@ -14,5 +14,5 @@ object Object:
       object_type match
         case "Register" => new Register(name)
         case _ => throw new IllegalArgumentException("Object type not found: " + object_type)
-    else customObjectFactory.get.create(typeArgs)
+    else customObjectFactory.get.create(name, typeArgs)
   }
