@@ -1,0 +1,11 @@
+import "def.amecos"
+
+new TestAndSet T
+
+process p1:
+    T.Testandset()/0
+    T.Testandset()/1
+    T.Testandset()/1
+
+p1.1 -> p1.0
+p1.0 -> p1.2

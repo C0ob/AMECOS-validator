@@ -1,0 +1,4 @@
+type TestAndSet:
+    operation Testandset:
+        void -> int
+        S = (output == 0 and count(context) == 0) or (output == 1 and count(context) > 0);
