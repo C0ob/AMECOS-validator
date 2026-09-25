@@ -1,5 +1,8 @@
 /** A consistency condition evaluated over an AMECOS history. */
-abstract class Consistency(val name: String):
+sealed abstract class Consistency(val name: String):
+  /** Consistency level, from 0 (weakest) to 2 (strongest). If level 1 is invalid for an order, all levels above are also invalid. */
+  val level: Int
+
   /** Tests whether this condition holds for the supplied history. */
   def check(order: Order): Boolean
 
@@ -8,17 +11,27 @@ abstract class Consistency(val name: String):
 
 /** AMECOS condition requiring a total order that respects real-time ordering. */
 object Linearizability extends Consistency("Linearizability"):
-  /** Checks total ordering and real-time ordering. */
+  val level = 2
+
   override def check(order: Order): Boolean = Consistency.totally_ordered(order) && Consistency.real_time_ordered(order, order.history.opExes)
 
-/** AMECOS condition requiring each process's operations to respect real-time order. */
+
+/** AMECOS condition requiring each process's operations to respect real-time order while enforcing a total order. */
 object SeqCons extends Consistency("SeqCons"):
-  /** Checks real-time ordering independently for each process. */
-  override def check(order: Order): Boolean = Consistency.process_ordered(order) && Consistency.process_ordered(order)
+  val level = 1
+
+  override def check(order: Order): Boolean = Consistency.totally_ordered(order) && Consistency.process_ordered(order)
+
+/** AMECOS condition requiring each process's operations to respect real-time order but does not enforce a total order. */
+object CausalCons extends Consistency("CausalCons"):
+  val level = 0
+
+  override def check(order: Order): Boolean = Consistency.process_ordered(order)
 
 /** Implementations of the ordering predicates used by consistency models. */
 object Consistency:
   /** Checks whether the supplied partial order is a single total chain. */
+
   /** Returns whether every operation belongs to one total chain. */
   def totally_ordered(order: Order): Boolean =
     val opExes = order.history.opExes
@@ -33,6 +46,7 @@ object Consistency:
     count == opExes.size - 1
 
   /** Checks real-time ordering for each process projection of the history. */
+
   /** Returns whether each process projection respects real-time order. */
   def process_ordered(order: Order): Boolean =
     val history = order.history
@@ -41,6 +55,7 @@ object Consistency:
 
 
   /** Checks that non-overlapping op-exes occur in real-time order. */
+
   /** Returns whether non-overlapping operations occur in real-time order. */
   def real_time_ordered(order: Order, processOps: Set[Operation]): Boolean =
     processOps.forall { first =>
@@ -55,4 +70,5 @@ object Consistency:
     name match
       case "Linearizability" => Linearizability
       case "SeqCons" => SeqCons
+      case "CausalCons" => CausalCons
       case _ => throw new IllegalArgumentException("Consistency type not found: " + name)

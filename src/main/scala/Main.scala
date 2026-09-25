@@ -21,18 +21,19 @@ object Main:
         var order = ast.order
         val consistencies = ast.consistencies
 
-        if order.numEdges == 0 then {
+        if order.numEdges == 0
+        then
           println("!--- No ordering found, generating valid order...")
           val timeBefore = System.currentTimeMillis()
           val newOrder = Order.findValidOrder(history, consistencies)
           val timeAfter = System.currentTimeMillis()
           println("Took " + (timeAfter - timeBefore) + "ms")
-          if newOrder.isEmpty then {
+          if newOrder.isEmpty
+          then
             println(Console.RED + "No valid order found" + Console.RESET)
             return
-          }
+
           order = newOrder.get
-        }
 
         order.print()
 
@@ -41,10 +42,15 @@ object Main:
         else println(Console.RED + "History is illegal" + Console.RESET)
 
         if consistencies.nonEmpty then println("!--- Checking consistencies:")
-        consistencies.foreach(c =>
-          if c.check(order) then println(Console.GREEN + c.name + " is satisfied" + Console.RESET)
-          else println(Console.RED + c.name + " is not satisfied" + Console.RESET)
-        )
+        var levelInvalid = Integer.MAX_VALUE
+        consistencies.toList.sortBy(_.level) foreach (c =>
+          if levelInvalid < c.level || c.check(order)
+          then
+            println(Console.GREEN + c.name + " is satisfied" + Console.RESET)
+          else
+            println(Console.RED + c.name + " is not satisfied" + Console.RESET)
+            levelInvalid = Math.min(levelInvalid, c.level)
+          )
 
         if options.diagram then
           try writeDiagram(options.path, history, order, options.format)
