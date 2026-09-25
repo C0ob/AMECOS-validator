@@ -1,6 +1,6 @@
 // Concurrent register
 
-check Linearizability, SeqCons // Indicate that we want to check linearizability and SeqCons
+check Atomic, Sequential // Indicate the consistency models we want to check
 
 new Register R // Create a new object of type Register
 
