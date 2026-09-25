@@ -10,20 +10,20 @@ sealed abstract class Consistency(val name: String):
   override def toString: String = name
 
 /** AMECOS condition requiring a total order that respects real-time ordering. */
-object Linearizability extends Consistency("Linearizability"):
+object Atomic extends Consistency("Linearizability"):
   val level = 2
 
   override def check(order: Order): Boolean = Consistency.totally_ordered(order) && Consistency.real_time_ordered(order, order.history.opExes)
 
 
 /** AMECOS condition requiring each process's operations to respect real-time order while enforcing a total order. */
-object SeqCons extends Consistency("SeqCons"):
+object Sequential extends Consistency("SeqCons"):
   val level = 1
 
   override def check(order: Order): Boolean = Consistency.totally_ordered(order) && Consistency.process_ordered(order)
 
 /** AMECOS condition requiring each process's operations to respect real-time order but does not enforce a total order. */
-object CausalCons extends Consistency("CausalCons"):
+object Causal extends Consistency("CausalCons"):
   val level = 0
 
   override def check(order: Order): Boolean = Consistency.process_ordered(order)
@@ -68,7 +68,7 @@ object Consistency:
   /** Resolves a consistency name from the `.amecos` DSL. */
   def get_consistency(name: String): Consistency =
     name match
-      case "Linearizability" => Linearizability
-      case "SeqCons" => SeqCons
-      case "CausalCons" => CausalCons
+      case "Linearizability" => Atomic
+      case "SeqCons" => Sequential
+      case "CausalCons" => Causal
       case _ => throw new IllegalArgumentException("Consistency type not found: " + name)
