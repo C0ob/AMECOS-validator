@@ -68,7 +68,7 @@ object Consistency:
   /** Resolves a consistency name from the `.amecos` DSL. */
   def get_consistency(name: String): Consistency =
     name match
-      case "Linearizability" => Atomic
-      case "SeqCons" => Sequential
-      case "CausalCons" => Causal
+      case "Atomic" => Atomic
+      case "Sequential" => Sequential
+      case "Causal" => Causal
       case _ => throw new IllegalArgumentException("Consistency type not found: " + name)
