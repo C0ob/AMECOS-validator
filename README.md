@@ -73,3 +73,5 @@ sbt 'run --diagram --format pdf examples/example.amecos'
 ```
 
 SVG is the default format.
+
+![Generated diagram for the example](examples/example.svg)
