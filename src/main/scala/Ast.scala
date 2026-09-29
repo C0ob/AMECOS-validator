@@ -25,7 +25,7 @@ object Ast:
   case class App(objs: Map[String, Object], history: History, order: Order, consistencies: Set[Consistency]) extends Ast
   
   /** Parsed custom operation. */
-  case class TypeDef(factory: CustomObjectFactory) extends Ast
+  case class TypeDef(factory: ObjectFactory) extends Ast
   
   /** Parsed custom operation. */
   case class OpDef(factory: CustomOperationFactory) extends Ast

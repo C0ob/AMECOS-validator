@@ -1,5 +1,5 @@
 /** Creates objects of custom types defined in the DSL. */
-class CustomObjectFactory(val name: String, opFactories: Set[CustomOperationFactory], typeVars: List[String]):
+class ObjectFactory(val name: String, opFactories: Set[CustomOperationFactory], typeVars: List[String]):
   require(typeVars.distinct.size == typeVars.size, s"Duplicate type parameter in $name")
   private def factory_new_op(obj: Object, process: Process, name: String, args: List[Data], ret: Option[Data], start: Int, end: Int,
                              factories: Set[CustomOperationFactory]): Operation =

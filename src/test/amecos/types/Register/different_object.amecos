@@ -1,7 +1,7 @@
 import "def.amecos"
 
-new Register R1
-new Register R2
+new Register<int> R1
+new Register<int> R2
 
 process p:
   R1.Write(7) (1, 2)

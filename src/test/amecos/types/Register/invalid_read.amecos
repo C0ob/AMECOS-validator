@@ -1,6 +1,6 @@
 import "def.amecos"
 
-new Register R
+new Register<int> R
 
 process p:
   R.Read(1)/1 (1, 2)

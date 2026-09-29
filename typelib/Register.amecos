@@ -1,4 +1,4 @@
-type STD_Register<T>:
+type Register<T>:
     operation Write:
         T -> void
 
@@ -7,5 +7,5 @@ type STD_Register<T>:
         V = exists in context where this same object as that: name == "Write";
         S = exists in context where this same object as that:
                 (name == "Write") and (this.output == input[0])
-                and not exists in that.future where this same object as that:
-                    (name == "Write");
+                and not exists in that.future intersect this.context where this same object as that:
+                    (name == "Write") and (input[0] != this.output);

@@ -1,8 +1,10 @@
 // Concurrent register
 
+import "../typelib/Register.amecos"
+
 check Atomic, Sequential // Indicate the consistency models we want to check
 
-new Register R // Create a new object of type Register
+new Register<int> R // Create a new object of type Register
 
 // Define process and their opexes: Object.Operation(Arguments)/Returns (start, end)
 process p1:

@@ -10,7 +10,7 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
   var opExes: List[Operation] = List()
   var history: History = null // could have been done more cleanly, I know :p
   var order: Order = null
-  private var factories = Map[String, CustomObjectFactory]()
+  private var factories = Map[String, ObjectFactory]()
   private var objMap: Map[String, Object] = Map()
   private var processes: Set[Process] = Set()
   private var consistencies: Set[Consistency] = Set()
@@ -44,7 +44,7 @@ class AstBuilder extends AmecosBaseVisitor[Ast]:
       if ctx.typePars() == null then Nil
       else ctx.typePars().getText.drop(1).dropRight(1).split(",").toList
     val opFactories = ctx.opdef().asScala.map(o => visitOpdef(o).factory).toSet
-    val factory = new CustomObjectFactory(typeName, opFactories, typeVars)
+    val factory = new ObjectFactory(typeName, opFactories, typeVars)
     factories = factories + (typeName -> factory)
     TypeDef(factory)
 
