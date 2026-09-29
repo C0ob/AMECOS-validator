@@ -1,34 +1,29 @@
 # AMECOS validator
 
-A DSL written in scala for evaluating [AMECOS](https://doi.org/10.4230/LIPIcs.OPODIS.2024.4) object specifications, histories and orderings.
+A Scala 3 command-line validator for [AMECOS](https://doi.org/10.4230/LIPIcs.OPODIS.2024.4) object specifications, histories, orderings, and consistency models.
 
-## Requirements and commands
+## Requirements
 
-The project uses Scala 3.8.3 and SBT 1.12.11.
+- Scala 3.8.3
+- SBT 1.12.11
 
 ```sh
 sbt compile
 sbt test
-sbt 'testOnly AmecosSuite -- -z "test name"'
 sbt 'run examples/example.amecos'
 ```
 
-The CLI accepts exactly one input path and prints parser diagnostics, the
-resulting order, legality checks, and requested consistency results.
+The CLI accepts one `.amecos` file and reports parser diagnostics, the
+resulting order, legality, and requested consistency checks.
 
 ## Example
 
-This concurrent register history checks both linearizability and sequential
-consistency:
-
 ```amecos
-// Concurrent register
+import "typelib/Register.amecos"
 
 check Linearizability, SeqCons
+new Register<int> R
 
-new Register R
-
-// Object.Operation(arguments)/return (start, end)
 process p1:
     R.Write(1) (1, 2)
     R.Read()/2 (7, 9)
@@ -37,79 +32,44 @@ process p2:
     R.Read()/1 (2, 4)
     R.Write(2) (5, 8)
 
-
-// References use each process's zero-based operation index.
 p1.0->p2.0
 p2.0->p2.1
 p2.1->p1.1
 ```
-The validator confirms the history is legal and validates linearizability and
-sequential consistency.
-Run it with:
 
-```sh
-sbt 'run examples/example.amecos'
-```
+Operation intervals are optional and default to `(0, 0)`. Ordering references
+use each process's zero-based operation indexes. If no edges are supplied, the
+validator searches for a legal order satisfying the requested consistency
+models.
 
-## Imports
+## Typelib
 
-Quoted imports are expanded textually before parsing. Relative paths resolve
-from the importing file, and nested imports are supported:
+Reusable object definitions are in [`typelib/`](typelib):
 
-```amecos
-import "fragments/processes.amecos"
-```
+- [`Register.amecos`](typelib/Register.amecos)
+- [`Counter.amecos`](typelib/Counter.amecos)
+- [`Dictionary.amecos`](typelib/Dictionary.amecos)
+- [`TestAndSet.amecos`](typelib/TestAndSet.amecos)
 
-Imported files are fragments rather than complete applications. Import cycles
-and malformed imports are rejected.
-
-## Custom object types
-
-The DSL can define object types and operation predicates. Predicates use the
-`V` (validity), `S` (safety), and `L` (liveness) forms and can refer to
-`output`, `input`, `context`, `future`, and `count(...):
+Import a definition with a quoted, relative import. Imports are expanded
+textually, may be nested, and cannot contain cycles.
 
 ```amecos
-type Counter:
-    operation Inc:
-        void -> int
-        S = output == count(context) + 1;
-
-check Linearizability
-new C Counter
-
-process p:
-    C.Inc()/1 (0, 2)
+import "../typelib/Counter.amecos"
 ```
 
-Built-in register operations are `R.Write(value)` and `R.Read()/value`.
-Operation intervals are optional; an omitted interval defaults to `(0, 0)`.
-Object names use uppercase letters/underscores and process names start with a
-lowercase letter. 
+Object types can also be declared directly with `type`. Their operations use
+`V` (validity), `S` (safety), and `L` (liveness) predicates. Predicates can
+refer to `output`, `input`, `context`, `future`, and `count(...)`.
 
-## Partial order search algorithm
+## Diagrams
 
-If no ordering edges are provided, the validator searches for an order that is
-legal and satisfies the requested consistency models. The result may remain a
-partial order when the models allow concurrent operations to stay unordered;
-linearizability requires a total order. Cyclic explicit ordering is rejected.
-
-## Visualize a history
-
-Generate a history diagram with one colored horizontal timeline per process:
+Generate a diagram beside the input file:
 
 ```sh
 sbt 'run --diagram examples/example.amecos'
-```
-
-The output is written next to the input file, replacing its extension. Each
-op-ex is shown as a colored double-headed interval with endpoint dots and its
-`(start, end)` values. Explicit ordering is shown with dashed arrows. SVG is
-the default; PNG and PDF are also supported:
-
-```sh
 sbt 'run --diagram --format png examples/example.amecos'
 sbt 'run --diagram --format pdf examples/example.amecos'
 ```
 
-![Generated diagram for example.amecos](examples/example.svg)
+SVG is the default format.
